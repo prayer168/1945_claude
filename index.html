@@ -10,9 +10,10 @@
   html,body { height:100%; background:var(--bg); overflow:hidden;
     font-family:"Segoe UI","Microsoft JhengHei",sans-serif; color:#e8f4ff;
     -webkit-tap-highlight-color:transparent; touch-action:none; }
-  #wrap { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; }
-  #stage { position:relative; box-shadow:0 0 60px rgba(54,224,255,.15); }
-  canvas { display:block; background:#020409; image-rendering:auto; }
+  #wrap { position:fixed; inset:0; }
+  #stage { position:absolute; inset:0; width:100%; height:100%; }
+  canvas { display:block; background:#020409; image-rendering:auto;
+    width:100%; height:100%; }
 
   /* HUD */
   #hud { position:absolute; inset:0; pointer-events:none; font-weight:600;
@@ -115,17 +116,20 @@
 "use strict";
 (() => {
 // ====================== 基本設定 ======================
-const BASE_W = 420, BASE_H = 680;           // 邏輯解析度
+let BASE_W = 420, BASE_H = 680;             // 邏輯解析度（依視窗比例動態調整）
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 let scale = 1;
 
 function resize() {
-  const maxW = window.innerWidth, maxH = window.innerHeight;
-  scale = Math.min(maxW / BASE_W, maxH / BASE_H);
+  const w = window.innerWidth, h = window.innerHeight;
+  // 固定垂直參考高度，水平依視窗比例展開 → 撐滿全螢幕且不變形
+  BASE_H = 680;
+  BASE_W = Math.max(320, Math.round(BASE_H * w / h));
   canvas.width = BASE_W; canvas.height = BASE_H;
-  canvas.style.width  = (BASE_W * scale) + 'px';
-  canvas.style.height = (BASE_H * scale) + 'px';
+  canvas.style.width  = w + 'px';
+  canvas.style.height = h + 'px';
+  scale = h / BASE_H;                       // 觸控座標換算（縱橫等比）
 }
 window.addEventListener('resize', resize);
 resize();
