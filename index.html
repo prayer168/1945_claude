@@ -527,15 +527,16 @@ function lsSet(v){
   try{ localStorage.setItem(HI_KEY,v); }catch(e){ /* 退回記憶體 */ }
 }
 function getScores(){ try{ return JSON.parse(lsGet())||[]; }catch(e){ return []; } }
-function saveScore(name,score){
-  const arr=getScores(); arr.push({name:name||'PLAYER',score});
+function saveScore(name,score,combo){
+  const arr=getScores(); arr.push({name:name||'PLAYER',score,combo:combo||0});
   arr.sort((a,b)=>b.score-a.score); arr.splice(5);
   lsSet(JSON.stringify(arr)); return arr;
 }
 function renderTable(id){
   const arr=getScores(); const el=document.getElementById(id);
   if(!arr.length){ el.innerHTML='<p class="hint">尚無紀錄，成為第一名吧！</p>'; return; }
-  let h='<table>'; arr.forEach((s,i)=>{ h+=`<tr><td class="rank">${['🥇','🥈','🥉','4.','5.'][i]}</td><td>${esc(s.name)}</td><td style="color:#ffd166">${s.score}</td></tr>`; });
+  let h='<table><tr><td></td><td class="label">玩家</td><td class="label">分數</td><td class="label">連段</td></tr>';
+  arr.forEach((s,i)=>{ h+=`<tr><td class="rank">${['🥇','🥈','🥉','4.','5.'][i]}</td><td>${esc(s.name)}</td><td style="color:#ffd166">${s.score}</td><td style="color:#7fffd4">${s.combo?('x'+s.combo):'-'}</td></tr>`; });
   el.innerHTML=h+'</table>';
 }
 function esc(s){ return String(s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
@@ -569,7 +570,7 @@ document.addEventListener('webkitfullscreenchange',()=>setTimeout(resize,60));
 document.getElementById('saveBtn').onclick=()=>{
   if(!document.getElementById('nameRow').classList.contains('hidden')){
     const nm=document.getElementById('nameInput').value.trim().slice(0,8);
-    saveScore(nm, game.score);
+    saveScore(nm, game.score, game.comboBest);
   }
   hide('overScreen'); show('titleScreen'); renderTable('hiTable'); updateHUD();
 };
