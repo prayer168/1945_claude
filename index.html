@@ -180,6 +180,7 @@ const SFX={
   bomb:()=>{beep(80,0.5,'sawtooth',0.18);},
   die:()=>{beep(300,0.1,'square',0.12); setTimeout(()=>beep(150,0.3,'sawtooth',0.12),100);},
   boss:()=>{beep(110,0.4,'sawtooth',0.14);},
+  alarm:()=>{beep(740,0.16,'square',0.07); setTimeout(()=>beep(560,0.2,'square',0.07),160);},
 };
 
 // ====================== 輸入 ======================
@@ -233,6 +234,7 @@ const game={
   player:null, bullets:[], enemies:[], ebullets:[], items:[], particles:[], stars:[],
   scenery:[], pmissiles:[], scenT:0,
   spawnQueue:[], waveTimer:0, boss:null, bossPending:false,
+  warnT:0, warnBeep:0,
   shake:0, slowmo:0, flash:0, toast:null,
 };
 
@@ -394,7 +396,7 @@ function explode(x,y,color,r){ const n=Math.floor(r); for(let i=0;i<n;i++){
 
 // ====================== 關卡 / 波次 ======================
 function buildStage(s){
-  game.spawnQueue=[]; game.bossPending=false; game.boss=null;
+  game.spawnQueue=[]; game.bossPending=false; game.boss=null; game.warnT=0; game.warnBeep=0;
   let t=90; // frame offset
   const waves=[
     // stage1 — 序章，較緩但拉長
@@ -583,8 +585,14 @@ function update(dt){
       const s=game.spawnQueue.shift(); spawnEnemy(s.type,s.x);
     }
     if(game.spawnQueue.length===0 && game.enemies.length===0 && game.frame>game.stageEndFrame){
-      game.bossPending=true; setTimeout(spawnBoss, 600);
+      game.bossPending=true; game.warnT=2.6; game.warnBeep=0; // 啟動 BOSS 警告
     }
+  }
+  // BOSS 出場警告倒數
+  if(game.warnT>0){
+    game.warnT-=dt;
+    game.warnBeep-=dt; if(game.warnBeep<=0){ SFX.alarm(); game.warnBeep=0.65; }
+    if(game.warnT<=0 && game.bossPending && !game.boss) spawnBoss();
   }
 
   // --- 玩家子彈 ---
@@ -816,6 +824,9 @@ function draw(){
 
   // Boss 血條
   if(game.boss && !game.boss.entering) drawBossBar();
+
+  // BOSS 出場警告
+  if(game.warnT>0) drawWarning();
 
   // 炸彈閃光
   if(game.flash>0){ ctx.globalAlpha=clamp(game.flash/20,0,0.7); ctx.fillStyle='#fff';
@@ -1110,6 +1121,36 @@ function shade(hex,amt){
   const f=amt<0?0:255, p=Math.abs(amt);
   r=Math.round(r+(f-r)*p); g=Math.round(g+(f-g)*p); b=Math.round(b+(f-b)*p);
   return 'rgb('+r+','+g+','+b+')';
+}
+function drawWarning(){
+  const t=now()/1000;
+  const blink = (Math.sin(t*12)>0);           // 文字閃爍
+  const cy=BASE_H*0.42, bandH=44;
+  // 危險斜紋帶（上下）
+  const sx=(t*120)%48;
+  ctx.save();
+  [cy-bandH/2, cy+bandH/2-10].forEach((by,bi)=>{
+    ctx.fillStyle='rgba(0,0,0,.55)'; ctx.fillRect(0,by,BASE_W,5);
+  });
+  // 中央紅底帶
+  ctx.fillStyle='rgba(120,0,0,'+(0.30+0.15*Math.sin(t*8))+')';
+  ctx.fillRect(0,cy-bandH/2,BASE_W,bandH);
+  // 斜條紋
+  ctx.beginPath(); ctx.rect(0,cy-bandH/2,BASE_W,bandH); ctx.clip();
+  ctx.strokeStyle='rgba(255,196,0,.5)'; ctx.lineWidth=10;
+  for(let x=-60;x<BASE_W+60;x+=48){ ctx.beginPath();
+    ctx.moveTo(x-sx,cy-bandH); ctx.lineTo(x-sx+bandH*1.4,cy+bandH); ctx.stroke(); }
+  ctx.restore();
+  // WARNING 文字
+  if(blink){
+    ctx.fillStyle='#ff3b3b'; ctx.font='bold 30px Impact,"Arial Black",sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.shadowColor='#ff0000'; ctx.shadowBlur=14;
+    ctx.fillText('⚠ WARNING ⚠', BASE_W/2, cy-4);
+    ctx.shadowBlur=0;
+    ctx.fillStyle='#ffd166'; ctx.font='bold 12px "Microsoft JhengHei",sans-serif';
+    ctx.fillText('BOSS 接近中　準備迎戰', BASE_W/2, cy+15);
+  }
 }
 function drawBossBar(){
   const b=game.boss; const w=BASE_W-40, x=20, y=40;
