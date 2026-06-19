@@ -242,6 +242,7 @@ const game={
   scenery:[], pmissiles:[], scenT:0,
   spawnQueue:[], waveTimer:0, boss:null, bossPending:false,
   warnT:0, warnBeep:0,
+  combo:0, comboTimer:0, comboPop:0, comboBest:0, comboWindow:2.6,
   shake:0, slowmo:0, flash:0, toast:null,
 };
 
@@ -316,12 +317,18 @@ function spawnEnemy(type,x){
   game.enemies.push(base);
 }
 
+function comboMult(){ return 1 + Math.min(game.combo*0.1, 2); } // 1.0x ~ 3.0x
+function registerKill(){
+  game.combo++; game.comboTimer=game.comboWindow; game.comboPop=1;
+  if(game.combo>game.comboBest) game.comboBest=game.combo;
+}
 function damageEnemy(e,dmg){
   e.hp-=dmg; e.hit=8;
   if(e.hp<=0 && !e.dead){
     e.dead=true;
     if(e===game.boss){ killBoss(); return; }
-    addScore(e.score);
+    registerKill();
+    addScore(Math.round(e.score*comboMult()));
     explode(e.x,e.y,e.color, e.r);
     SFX.boom();
     maybeDrop(e.x,e.y);
@@ -445,6 +452,7 @@ function startGame(){
   game.score=0; game.stage=1; game.lives=3; game.bombs=3; game.missiles=3;
   game.bullets=[]; game.enemies=[]; game.ebullets=[]; game.items=[]; game.particles=[];
   game.pmissiles=[]; game.scenery=[]; game.scenT=0; game.toast=null;
+  game.combo=0; game.comboTimer=0; game.comboPop=0; game.comboBest=0;
   game.player=makePlayer(); initStars();
   buildStage(1);
   hide('titleScreen'); hide('clearScreen'); hide('overScreen');
@@ -469,7 +477,7 @@ function nextStage(){
 function gameOver(win){
   state=State.OVER;
   document.getElementById('overTitle').textContent = win ? '🏆 通關成功！' : 'GAME OVER';
-  document.getElementById('overScore').textContent = `最終分數：${game.score}`;
+  document.getElementById('overScore').textContent = `最終分數：${game.score}　最高連段：${game.comboBest}`;
   const top=getScores();
   const isHi = top.length<5 || game.score>top[top.length-1].score;
   const nameRow=document.getElementById('nameRow');
@@ -484,6 +492,7 @@ function loseLife(){
   const old=game.player;
   explode(old.x,old.y,'#36e0ff',24); SFX.die();
   game.ebullets=[]; game.shake=20; game.flash=10;
+  game.combo=0; game.comboTimer=0;   // 被擊中斷鏈
   if(game.lives<0){ gameOver(false); return; }
   game.player=makePlayer(old); // 保留武器種類，火力/僚機/護罩重置
 }
@@ -574,6 +583,8 @@ function update(dt){
   for(let i=game.scenery.length-1;i>=0;i--){ const o=game.scenery[i]; o.y+=o.v*dt; o.rot+=o.vr*dt;
     if(o.y-o.r>BASE_H+140) game.scenery.splice(i,1); }
   if(game.toast){ game.toast.life-=dt; if(game.toast.life<=0) game.toast=null; }
+  if(game.comboPop>0) game.comboPop=Math.max(0,game.comboPop-dt*3);
+  if(game.comboTimer>0){ game.comboTimer-=dt; if(game.comboTimer<=0) game.combo=0; }
 
   if(state!==State.PLAY) return;
   const p=game.player;
@@ -852,6 +863,9 @@ function draw(){
 
   // BOSS 出場警告
   if(game.warnT>0) drawWarning();
+
+  // 連段
+  if(game.combo>=2 && state===State.PLAY) drawCombo();
 
   // 炸彈閃光
   if(game.flash>0){ ctx.globalAlpha=clamp(game.flash/20,0,0.7); ctx.fillStyle='#fff';
@@ -1146,6 +1160,26 @@ function shade(hex,amt){
   const f=amt<0?0:255, p=Math.abs(amt);
   r=Math.round(r+(f-r)*p); g=Math.round(g+(f-g)*p); b=Math.round(b+(f-b)*p);
   return 'rgb('+r+','+g+','+b+')';
+}
+function drawCombo(){
+  const cx=BASE_W/2, cy=BASE_H*0.16;
+  const pop=1+game.comboPop*0.5;
+  const mult=comboMult();
+  // 連段數越高顏色越熱
+  const col = game.combo>=20?'#ff5252' : game.combo>=10?'#ffd166' : '#7fffd4';
+  ctx.save(); ctx.translate(cx,cy); ctx.scale(pop,pop);
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle=col; ctx.font='bold 26px Impact,"Arial Black",sans-serif';
+  ctx.shadowColor=col; ctx.shadowBlur=10;
+  ctx.fillText(game.combo+' COMBO', 0, 0);
+  ctx.shadowBlur=0;
+  ctx.fillStyle='#cfffe9'; ctx.font='bold 13px "Microsoft JhengHei",sans-serif';
+  ctx.fillText('得分 x'+mult.toFixed(1), 0, 18);
+  ctx.restore();
+  // 剩餘時間條
+  const w=86, frac=clamp(game.comboTimer/game.comboWindow,0,1);
+  ctx.fillStyle='rgba(255,255,255,.18)'; ctx.fillRect(cx-w/2,cy+28,w,4);
+  ctx.fillStyle=col; ctx.fillRect(cx-w/2,cy+28,w*frac,4);
 }
 function drawWarning(){
   const t=now()/1000;
