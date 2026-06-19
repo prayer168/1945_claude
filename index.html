@@ -68,6 +68,11 @@
     background:rgba(8,20,34,.5); color:#cff; font-size:15px; line-height:1;
     width:30px; height:26px; border-radius:6px; }
   #fsBtn:active { background:rgba(54,224,255,.35); }
+  #diffSel { display:flex; gap:8px; align-items:center; }
+  .diffBtn { pointer-events:auto; cursor:pointer; border:1px solid #2a567a;
+    background:rgba(10,20,34,.6); color:#9fc; padding:7px 16px; border-radius:6px;
+    font-size:14px; font-weight:600; }
+  .diffBtn.sel { border-color:var(--accent); background:rgba(54,224,255,.18); color:var(--accent); }
 </style>
 </head>
 <body>
@@ -106,6 +111,12 @@
       <h1>STRIKER 1945<small>RETRO SHOOTER</small></h1>
       <p class="hint">擊落敵機、收集道具、撐過 6 關擊敗每一關的 BOSS。<br>
         道具：<b style="color:#36e0ff">P</b>火力 <b style="color:#c792ea">W</b>換武器 <b style="color:#5fffa0">O</b>僚機 <b style="color:#5d8bff">S</b>護罩 <b style="color:#ff9a3b">C</b>飛彈 <b style="color:#ffd166">B</b>炸彈 <b style="color:#ff7b7b">♥</b>補血</p>
+      <div id="diffSel">
+        <span class="label">難度</span>
+        <button class="diffBtn" data-d="0">簡單</button>
+        <button class="diffBtn sel" data-d="1">普通</button>
+        <button class="diffBtn" data-d="2">困難</button>
+      </div>
       <button class="btn" id="startBtn">▶ 開始遊戲</button>
       <button class="btn" id="fsStartBtn" style="padding:8px 20px;font-size:13px">⛶ 進入全螢幕</button>
       <div class="ctrls">
@@ -243,8 +254,17 @@ const game={
   spawnQueue:[], waveTimer:0, boss:null, bossPending:false,
   warnT:0, warnBeep:0,
   combo:0, comboTimer:0, comboPop:0, comboBest:0, comboWindow:2.6,
+  diffSpd:1, diffGap:1,
   shake:0, slowmo:0, flash:0, toast:null,
 };
+
+// 難度：espd=敵彈速度倍率, gap=射擊節奏倍率(>1較稀疏), lives=起始命數
+const DIFF=[
+  {name:'簡單', espd:0.80, gap:1.35, lives:4},
+  {name:'普通', espd:1.00, gap:1.00, lives:3},
+  {name:'困難', espd:1.28, gap:0.70, lives:2},
+];
+let selDiff=1;
 
 const MAX_STAGE=6;
 const HI_KEY='striker1945_scores';
@@ -401,7 +421,7 @@ function playerShoot(){
 }
 function bShot(x,y,vx,vy){ return {x,y,vx,vy,r:4,dmg:1}; }
 function wShot(x,y){ const b=bShot(x,y,0,-620); b.wing=true; return b; }
-function eShot(x,y,vx,vy,r=5){ return {x,y,vx,vy,r}; }
+function eShot(x,y,vx,vy,r=5){ const s=game.diffSpd; return {x,y,vx:vx*s,vy:vy*s,r}; }
 
 function spark(x,y,color){ game.particles.push({x,y,vx:rand(-120,120),vy:rand(-120,120),
   life:rand(.3,.7),max:.7,color,size:rand(1.5,3.5)}); }
@@ -449,7 +469,8 @@ function buildStage(s){
 // ====================== 流程 ======================
 function startGame(){
   audio(); if(AC&&AC.state==='suspended') AC.resume();
-  game.score=0; game.stage=1; game.lives=3; game.bombs=3; game.missiles=3;
+  const d=DIFF[selDiff]; game.diffSpd=d.espd; game.diffGap=d.gap;
+  game.score=0; game.stage=1; game.lives=d.lives; game.bombs=3; game.missiles=3;
   game.bullets=[]; game.enemies=[]; game.ebullets=[]; game.items=[]; game.particles=[];
   game.pmissiles=[]; game.scenery=[]; game.scenT=0; game.toast=null;
   game.combo=0; game.comboTimer=0; game.comboPop=0; game.comboBest=0;
@@ -565,6 +586,11 @@ function toggleFullscreen(){
 }
 document.getElementById('fsBtn').onclick=toggleFullscreen;
 document.getElementById('fsStartBtn').onclick=toggleFullscreen;
+// 難度選擇
+document.querySelectorAll('.diffBtn').forEach(btn=>{
+  btn.addEventListener('click',()=>{ selDiff=+btn.dataset.d;
+    document.querySelectorAll('.diffBtn').forEach(b=>b.classList.toggle('sel', b===btn)); });
+});
 document.addEventListener('fullscreenchange',()=>setTimeout(resize,60));
 document.addEventListener('webkitfullscreenchange',()=>setTimeout(resize,60));
 document.getElementById('saveBtn').onclick=()=>{
@@ -681,8 +707,8 @@ function update(dt){
     if(e.type==='fighter'){ e.x+=Math.sin(e.t*2+e.phase)*80*dt; }
     if(e.type==='heavy'){ e.x+=Math.sin(e.t*1.2)*40*dt; }
     e.x=clamp(e.x,e.r,BASE_W-e.r);
-    // 射擊
-    e.fireCd-=dt*60;
+    // 射擊（節奏隨難度縮放）
+    e.fireCd-=dt*60/game.diffGap;
     if(e.fireCd<=0 && e.y>0 && e.y<BASE_H*0.7){
       if(e.type==='fighter'){ aimShot(e.x,e.y,160); e.fireCd=rand(60,100); }
       else if(e.type==='heavy'){ fanShot(e.x,e.y,5,150); e.fireCd=rand(80,120); }
@@ -764,8 +790,8 @@ function updateBoss(dt){
   if(b.hit>0)b.hit--;
   // 左右移動
   b.x = BASE_W/2 + Math.sin(b.t*0.8)*(BASE_W/2-60);
-  // 攻擊模式（依關卡強度不同）
-  b.patternT+=dt;
+  // 攻擊模式（依關卡強度不同；節奏隨難度縮放）
+  b.patternT+=dt/game.diffGap;
   const lvl=b.stage;
   if(lvl===1){
     if(b.patternT>0.5){ b.patternT=0; fanShot(b.x,b.y+30,5,150); }
