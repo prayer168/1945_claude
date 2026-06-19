@@ -53,6 +53,16 @@
   @keyframes fl { 50%{ opacity:.4; } }
   #touchHint { position:absolute; bottom:10px; left:0; right:0; text-align:center;
     font-size:11px; color:#567; pointer-events:none; }
+  #btnBar { position:absolute; right:10px; bottom:18px; display:flex; flex-direction:column; gap:10px; }
+  #btnBar.hidden { display:none; }
+  .gbtn { pointer-events:auto; cursor:pointer; user-select:none; -webkit-user-select:none;
+    width:58px; height:58px; border-radius:50%; border:1.5px solid rgba(255,255,255,.35);
+    background:rgba(8,20,34,.55); color:#dff; font-size:13px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; backdrop-filter:blur(2px);
+    flex-direction:column; line-height:1.2; }
+  .gbtn small { font-size:10px; color:#9cf; font-weight:500; }
+  .gbtn:active { background:rgba(54,224,255,.35); }
+  #gbWeapon { border-color:#c792ea; } #gbMissile { border-color:#ff9a3b; } #gbBomb { border-color:#ffd166; }
 </style>
 </head>
 <body>
@@ -72,20 +82,30 @@
           <span class="label">STAGE</span>
           <span class="big" id="stageNo">1</span>
           <span id="lives" style="margin-top:6px">♥♥♥</span>
+          <span id="weapon" style="color:#c792ea;margin-top:6px">火神砲</span>
           <span id="bombs">✸ x3</span>
+          <span id="missiles" style="color:#ff9a3b">➤ x3</span>
         </div>
       </div>
-      <div id="touchHint">拖曳移動・自動射擊・雙擊放炸彈</div>
+      <div id="touchHint">拖曳移動・自動射擊・右下按鈕：武器/飛彈/炸彈</div>
+      <div id="btnBar" class="hidden">
+        <div class="gbtn" id="gbWeapon">武器<small id="gbWeaponN">1</small></div>
+        <div class="gbtn" id="gbMissile">飛彈<small id="gbMissileN">3</small></div>
+        <div class="gbtn" id="gbBomb">炸彈<small id="gbBombN">3</small></div>
+      </div>
     </div>
 
     <!-- TITLE -->
     <div class="screen" id="titleScreen">
       <h1>STRIKER 1945<small>RETRO SHOOTER</small></h1>
-      <p class="hint">擊落敵機、收集道具、撐過三關擊敗每一關的 BOSS。</p>
+      <p class="hint">擊落敵機、收集道具、撐過 6 關擊敗每一關的 BOSS。<br>
+        道具：<b style="color:#36e0ff">P</b>火力 <b style="color:#c792ea">W</b>換武器 <b style="color:#5fffa0">O</b>僚機 <b style="color:#5d8bff">S</b>護罩 <b style="color:#ff9a3b">C</b>飛彈 <b style="color:#ffd166">B</b>炸彈 <b style="color:#ff7b7b">♥</b>補血</p>
       <button class="btn" id="startBtn">▶ 開始遊戲</button>
       <div class="ctrls">
-        <div>移動：<kbd>↑↓←→</kbd> / <kbd>W A S D</kbd> / 觸控拖曳</div>
-        <div>射擊：自動 ・ 炸彈：<kbd>空白</kbd> 或 <kbd>B</kbd> / 雙擊畫面</div>
+        <div>移動：<kbd>↑↓←→</kbd> / <kbd>W A S D</kbd> / 觸控拖曳　射擊：自動</div>
+        <div>武器切換：<kbd>1</kbd><kbd>2</kbd><kbd>3</kbd>　炸彈：<kbd>空白</kbd>/<kbd>B</kbd>　巡弋飛彈：<kbd>M</kbd></div>
+        <div>三種武器：火神砲(散布) ・ 雷射(貫穿) ・ 散彈(扇形)</div>
+        <div style="color:#789">手機：右下角按鈕操作 武器 / 飛彈 / 炸彈，雙擊也可放炸彈</div>
       </div>
       <div id="hiTable"></div>
     </div>
@@ -166,8 +186,13 @@ const SFX={
 const keys={};
 addEventListener('keydown',e=>{
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
-  keys[e.key.toLowerCase()]=true;
-  if(e.key===' '||e.key.toLowerCase()==='b') useBomb();
+  const k=e.key.toLowerCase();
+  keys[k]=true;
+  if(e.key===' '||k==='b') useBomb();
+  if(k==='m') fireMissile();
+  if((k==='1'||k==='2'||k==='3') && state===State.PLAY && game.player){
+    game.player.weapon=+k; toast('武器：'+WNAME[+k]); updateHUD();
+  }
 });
 addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; });
 
@@ -204,14 +229,17 @@ const State={TITLE:0,PLAY:1,CLEAR:2,OVER:3};
 let state=State.TITLE;
 
 const game={
-  score:0, hi:0, stage:1, lives:3, bombs:3,
+  score:0, hi:0, stage:1, lives:3, bombs:3, missiles:3,
   player:null, bullets:[], enemies:[], ebullets:[], items:[], particles:[], stars:[],
+  scenery:[], pmissiles:[], scenT:0,
   spawnQueue:[], waveTimer:0, boss:null, bossPending:false,
-  shake:0, slowmo:0, flash:0,
+  shake:0, slowmo:0, flash:0, toast:null,
 };
 
 const MAX_STAGE=6;
 const HI_KEY='striker1945_scores';
+const WNAME={1:'火神砲',2:'雷射',3:'散彈'};
+const WING_OFF=34, WING_DY=8;
 
 // 星空背景
 function initStars(){
@@ -220,12 +248,32 @@ function initStars(){
     s:rand(0.4,2.2), v:rand(20,90)});
 }
 
+// 太空背景物件（行星 / 星雲 / 隕石），緩慢下捲營造深空感
+function spawnScenery(){
+  const k=Math.random();
+  let o={x:rand(20,BASE_W-20),y:-120,v:rand(14,34),rot:0,vr:rand(-0.4,0.4)};
+  if(k<0.4){ o.kind='planet'; o.r=rand(34,70); o.hue=Math.floor(rand(0,360)); o.ring=Math.random()<0.5; }
+  else if(k<0.72){ o.kind='nebula'; o.r=rand(90,170); o.hue=Math.floor(rand(180,320)); }
+  else { o.kind='asteroid'; o.r=rand(10,26); o.pts=[]; const n=Math.floor(rand(6,9));
+    for(let i=0;i<n;i++) o.pts.push(rand(0.7,1.15)); }
+  game.scenery.push(o);
+}
+
 // ====================== 玩家 ======================
-function makePlayer(){
+function makePlayer(prev){
   return { x:BASE_W/2, y:BASE_H-90, r:13, speed:300,
-    power:1, fireCd:0, inv:120, // 無敵幀
+    power:1, weapon: prev?prev.weapon:1, wings:0, shield:0,
+    fireCd:0, inv:120, // 無敵幀
   };
 }
+function invuln(){ const p=game.player; return p.inv>0 || p.shield>0; }
+function nearestEnemy(x,y){
+  let best=null,bd=1e9;
+  for(const e of game.enemies){ const d=dist2(x,y,e.x,e.y); if(d<bd){bd=d;best=e;} }
+  if(game.boss && !game.boss.entering){ const d=dist2(x,y,game.boss.x,game.boss.y); if(d<bd) best=game.boss; }
+  return best;
+}
+function toast(txt){ game.toast={txt,life:1.2}; }
 
 function useBomb(){
   if(state!==State.PLAY) return;
@@ -237,6 +285,15 @@ function useBomb(){
   game.enemies.forEach(e=>{ damageEnemy(e,8); });
   if(game.boss) damageEnemy(game.boss,30);
   for(let i=0;i<40;i++) spark(rand(0,BASE_W),rand(0,BASE_H/2),'#ffd166');
+}
+
+// 巡弋飛彈：限量、自動追蹤、命中爆炸範圍傷害
+function fireMissile(){
+  if(state!==State.PLAY || game.missiles<=0) return;
+  game.missiles--; updateHUD(); SFX.shoot();
+  const p=game.player;
+  game.pmissiles.push({x:p.x-9,y:p.y-6,vx:-70,vy:-150,r:5,life:4.5,target:null});
+  game.pmissiles.push({x:p.x+9,y:p.y-6,vx: 70,vy:-150,r:5,life:4.5,target:null});
 }
 
 // ====================== 敵人定義 ======================
@@ -263,11 +320,16 @@ function damageEnemy(e,dmg){
   } else { SFX.hit(); }
 }
 
+function mkItem(x,y,kind){ return {x,y,vy:60,r:11,kind}; }
 function maybeDrop(x,y){
   const r=Math.random();
-  if(r<0.10) game.items.push({x,y,vy:60,r:11,kind:'power'});
-  else if(r<0.16) game.items.push({x,y,vy:60,r:11,kind:'bomb'});
-  else if(r<0.21) game.items.push({x,y,vy:60,r:11,kind:'life'});
+  if(r<0.09) game.items.push(mkItem(x,y,'power'));
+  else if(r<0.15) game.items.push(mkItem(x,y,'weapon'));
+  else if(r<0.20) game.items.push(mkItem(x,y,'wing'));
+  else if(r<0.245) game.items.push(mkItem(x,y,'shield'));
+  else if(r<0.29) game.items.push(mkItem(x,y,'cruise'));
+  else if(r<0.33) game.items.push(mkItem(x,y,'bomb'));
+  else if(r<0.355) game.items.push(mkItem(x,y,'life'));
 }
 
 // ====================== Boss ======================
@@ -296,18 +358,32 @@ function killBoss(){
 
 // ====================== 子彈 / 粒子 ======================
 function playerShoot(){
-  const p=game.player; const y=p.y-16;
+  const p=game.player; const y=p.y-16; const lvl=p.power;
   SFX.shoot();
-  const lvl=p.power;
-  if(lvl===1){ game.bullets.push(bShot(p.x,y,0,-560)); }
-  else if(lvl===2){ game.bullets.push(bShot(p.x-7,y,0,-560)); game.bullets.push(bShot(p.x+7,y,0,-560)); }
-  else if(lvl===3){ game.bullets.push(bShot(p.x,y,0,-580)); game.bullets.push(bShot(p.x-9,y,-90,-540)); game.bullets.push(bShot(p.x+9,y,90,-540)); }
-  else { // 4+
-    game.bullets.push(bShot(p.x-7,y,0,-600)); game.bullets.push(bShot(p.x+7,y,0,-600));
-    game.bullets.push(bShot(p.x-13,y,-150,-540)); game.bullets.push(bShot(p.x+13,y,150,-540));
+  if(p.weapon===1){            // 火神砲：前方集束散布
+    if(lvl===1){ game.bullets.push(bShot(p.x,y,0,-580)); }
+    else if(lvl===2){ game.bullets.push(bShot(p.x-7,y,0,-580)); game.bullets.push(bShot(p.x+7,y,0,-580)); }
+    else if(lvl===3){ game.bullets.push(bShot(p.x,y,0,-600)); game.bullets.push(bShot(p.x-9,y,-90,-560)); game.bullets.push(bShot(p.x+9,y,90,-560)); }
+    else { game.bullets.push(bShot(p.x-7,y,0,-620)); game.bullets.push(bShot(p.x+7,y,0,-620));
+           game.bullets.push(bShot(p.x-14,y,-160,-560)); game.bullets.push(bShot(p.x+14,y,160,-560)); }
+    p.fireCd = lvl>=3?7:9;
+  } else if(p.weapon===2){     // 雷射：高速貫穿
+    const cnt=Math.min(lvl,4);
+    for(let i=0;i<cnt;i++){ const off=(i-(cnt-1)/2)*9;
+      const b=bShot(p.x+off,y,0,-950); b.r=3; b.dmg=1; b.pierce=true; b.laser=true; game.bullets.push(b); }
+    p.fireCd = 5;
+  } else {                     // 散彈：寬扇形覆蓋
+    const pellets=3+lvl*2;
+    for(let i=0;i<pellets;i++){ const a=-Math.PI/2 + (i-(pellets-1)/2)*0.17, sp=520;
+      const b=bShot(p.x,y,Math.cos(a)*sp,Math.sin(a)*sp); b.spread=true; game.bullets.push(b); }
+    p.fireCd = 11;
   }
+  // 僚機齊射
+  if(p.wings>=1) game.bullets.push(wShot(p.x-WING_OFF, p.y+WING_DY-10));
+  if(p.wings>=2) game.bullets.push(wShot(p.x+WING_OFF, p.y+WING_DY-10));
 }
 function bShot(x,y,vx,vy){ return {x,y,vx,vy,r:4,dmg:1}; }
+function wShot(x,y){ const b=bShot(x,y,0,-620); b.wing=true; return b; }
 function eShot(x,y,vx,vy,r=5){ return {x,y,vx,vy,r}; }
 
 function spark(x,y,color){ game.particles.push({x,y,vx:rand(-120,120),vy:rand(-120,120),
@@ -356,8 +432,9 @@ function buildStage(s){
 // ====================== 流程 ======================
 function startGame(){
   audio(); if(AC&&AC.state==='suspended') AC.resume();
-  game.score=0; game.stage=1; game.lives=3; game.bombs=3;
+  game.score=0; game.stage=1; game.lives=3; game.bombs=3; game.missiles=3;
   game.bullets=[]; game.enemies=[]; game.ebullets=[]; game.items=[]; game.particles=[];
+  game.pmissiles=[]; game.scenery=[]; game.scenT=0; game.toast=null;
   game.player=makePlayer(); initStars();
   buildStage(1);
   hide('titleScreen'); hide('clearScreen'); hide('overScreen');
@@ -369,13 +446,13 @@ function stageClear(){
   document.getElementById('clearMsg').textContent =
     game.stage>=MAX_STAGE ? '所有關卡已完成！' : `目前分數 ${game.score}　準備迎戰下一關。`;
   document.getElementById('nextBtn').textContent = game.stage>=MAX_STAGE ? '🏆 通關結算' : '下一關 ▶';
-  show('clearScreen');
+  show('clearScreen'); updateHUD();
 }
 function nextStage(){
   hide('clearScreen');
   if(game.stage>=MAX_STAGE){ gameOver(true); return; }
   game.stage++;
-  game.enemies=[]; game.ebullets=[]; game.bullets=[];
+  game.enemies=[]; game.ebullets=[]; game.bullets=[]; game.pmissiles=[];
   buildStage(game.stage);
   state=State.PLAY; updateHUD();
 }
@@ -389,15 +466,16 @@ function gameOver(win){
   if(game.score>0 && isHi){ nameRow.classList.remove('hidden'); document.getElementById('nameInput').value=''; document.getElementById('nameInput').focus(); }
   else nameRow.classList.add('hidden');
   renderTable('overTable');
-  show('overScreen');
+  show('overScreen'); updateHUD();
 }
 
 function loseLife(){
   game.lives--; updateHUD();
-  explode(game.player.x,game.player.y,'#36e0ff',24); SFX.die();
+  const old=game.player;
+  explode(old.x,old.y,'#36e0ff',24); SFX.die();
   game.ebullets=[]; game.shake=20; game.flash=10;
   if(game.lives<0){ gameOver(false); return; }
-  game.player=makePlayer();
+  game.player=makePlayer(old); // 保留武器種類，火力/僚機/護罩重置
 }
 
 function addScore(n){ game.score+=n; if(game.score>game.hi) game.hi=game.score; updateHUD(); }
@@ -409,6 +487,13 @@ function updateHUD(){
   document.getElementById('stageNo').textContent=game.stage;
   document.getElementById('lives').textContent = game.lives>=0 ? '♥'.repeat(game.lives+1):'';
   document.getElementById('bombs').textContent = '✸ x'+game.bombs;
+  if(game.player){ const w=game.player.wings; document.getElementById('weapon').textContent =
+    WNAME[game.player.weapon] + (w?(' +僚機x'+w):'');
+    document.getElementById('gbWeaponN').textContent = game.player.weapon; }
+  document.getElementById('missiles').textContent = '➤ x'+game.missiles;
+  document.getElementById('gbMissileN').textContent = game.missiles;
+  document.getElementById('gbBombN').textContent = game.bombs;
+  document.getElementById('btnBar').classList.toggle('hidden', state!==State.PLAY);
 }
 
 // ====================== 排行榜 ======================
@@ -441,6 +526,14 @@ function show(id){ document.getElementById(id).classList.remove('hidden'); }
 function hide(id){ document.getElementById(id).classList.add('hidden'); }
 document.getElementById('startBtn').onclick=startGame;
 document.getElementById('nextBtn').onclick=nextStage;
+// 觸控按鈕（手機）
+function bindBtn(id,fn){ const el=document.getElementById(id);
+  el.addEventListener('click',e=>{ e.preventDefault(); fn(); });
+  el.addEventListener('touchstart',e=>{ e.preventDefault(); e.stopPropagation(); fn(); },{passive:false});
+}
+bindBtn('gbWeapon',()=>{ if(state===State.PLAY&&game.player){ game.player.weapon=game.player.weapon%3+1; toast('武器：'+WNAME[game.player.weapon]); updateHUD(); } });
+bindBtn('gbMissile',fireMissile);
+bindBtn('gbBomb',useBomb);
 document.getElementById('saveBtn').onclick=()=>{
   if(!document.getElementById('nameRow').classList.contains('hidden')){
     const nm=document.getElementById('nameInput').value.trim().slice(0,8);
@@ -453,9 +546,15 @@ document.getElementById('saveBtn').onclick=()=>{
 function update(dt){
   // 星空
   game.stars.forEach(s=>{ s.y+=s.v*dt; if(s.y>BASE_H){ s.y=0; s.x=rand(0,BASE_W);} });
+  // 太空背景物件
+  game.scenT-=dt; if(game.scenT<=0){ if(game.scenery.length<5) spawnScenery(); game.scenT=rand(2.5,5); }
+  for(let i=game.scenery.length-1;i>=0;i--){ const o=game.scenery[i]; o.y+=o.v*dt; o.rot+=o.vr*dt;
+    if(o.y-o.r>BASE_H+140) game.scenery.splice(i,1); }
+  if(game.toast){ game.toast.life-=dt; if(game.toast.life<=0) game.toast=null; }
 
   if(state!==State.PLAY) return;
   const p=game.player;
+  if(p.shield>0) p.shield-=dt;
 
   // --- 玩家移動 ---
   if(touchActive){
@@ -473,9 +572,9 @@ function update(dt){
   p.x=clamp(p.x,p.r,BASE_W-p.r); p.y=clamp(p.y,p.r,BASE_H-p.r);
   if(p.inv>0) p.inv--;
 
-  // --- 自動射擊 ---
+  // --- 自動射擊（冷卻由武器決定）---
   p.fireCd-=dt*60;
-  if(p.fireCd<=0){ playerShoot(); p.fireCd = p.power>=3?7:9; }
+  if(p.fireCd<=0){ playerShoot(); }
 
   // --- 生成敵人 ---
   game.frame++;
@@ -501,7 +600,33 @@ function update(dt){
       const e=game.boss;
       if(!e.entering && dist2(b.x,b.y,e.x,e.y)<(e.r+b.r)*(e.r+b.r)){ damageEnemy(e,b.dmg); hit=true; }
     }
-    if(hit) game.bullets.splice(i,1);
+    if(hit && !b.pierce) game.bullets.splice(i,1);
+  }
+
+  // --- 巡弋飛彈（追蹤）---
+  for(let i=game.pmissiles.length-1;i>=0;i--){
+    const m=game.pmissiles[i]; m.life-=dt;
+    if(!m.target || m.target.dead || (m.target!==game.boss && game.enemies.indexOf(m.target)<0)) m.target=nearestEnemy(m.x,m.y);
+    if(m.target){
+      const want=Math.atan2(m.target.y-m.y,m.target.x-m.x);
+      let ang=Math.atan2(m.vy,m.vx), sp=Math.hypot(m.vx,m.vy)||1;
+      let d=want-ang; while(d>Math.PI)d-=Math.PI*2; while(d<-Math.PI)d+=Math.PI*2;
+      ang+=clamp(d,-4*dt,4*dt); sp=Math.min(sp+360*dt,460);
+      m.vx=Math.cos(ang)*sp; m.vy=Math.sin(ang)*sp;
+    } else { m.vy-=240*dt; }
+    m.x+=m.vx*dt; m.y+=m.vy*dt;
+    if(Math.random()<0.6) spark(m.x,m.y-2,'#ffcf66');
+    let tgt=null;
+    for(const e of game.enemies){ if(dist2(m.x,m.y,e.x,e.y)<(e.r+m.r)*(e.r+m.r)){ tgt=e; break; } }
+    if(!tgt && game.boss && !game.boss.entering && dist2(m.x,m.y,game.boss.x,game.boss.y)<(game.boss.r+m.r)*(game.boss.r+m.r)) tgt=game.boss;
+    if(tgt || m.life<=0 || m.y<-30){
+      if(tgt){ explode(m.x,m.y,'#ffd166',16); SFX.boom(); game.shake=Math.min(game.shake+5,22);
+        damageEnemy(tgt,14);
+        for(const e of game.enemies.slice()){ if(e!==tgt && dist2(m.x,m.y,e.x,e.y)<62*62) damageEnemy(e,6); }
+        if(game.boss && tgt!==game.boss && dist2(m.x,m.y,game.boss.x,game.boss.y)<62*62) damageEnemy(game.boss,8);
+      }
+      game.pmissiles.splice(i,1);
+    }
   }
 
   // --- 敵人 ---
@@ -519,7 +644,10 @@ function update(dt){
       else { e.fireCd=rand(80,140); }
     }
     // 撞玩家
-    if(p.inv<=0 && dist2(e.x,e.y,p.x,p.y)<(e.r+p.r)*(e.r+p.r)){ damageEnemy(e,3); loseLife(); break; }
+    if(dist2(e.x,e.y,p.x,p.y)<(e.r+p.r)*(e.r+p.r)){
+      if(!invuln()){ damageEnemy(e,3); loseLife(); break; }
+      else if(p.shield>0){ damageEnemy(e,3); spark(p.x,p.y,'#5d8bff'); }
+    }
     if(e.y>BASE_H+40) game.enemies.splice(i,1);
   }
 
@@ -530,7 +658,10 @@ function update(dt){
   for(let i=game.ebullets.length-1;i>=0;i--){
     const b=game.ebullets[i]; b.x+=b.vx*dt; b.y+=b.vy*dt;
     if(b.y>BASE_H+10||b.y<-10||b.x<-10||b.x>BASE_W+10){ game.ebullets.splice(i,1); continue; }
-    if(p.inv<=0 && dist2(b.x,b.y,p.x,p.y)<(b.r+p.r-3)*(b.r+p.r-3)){ game.ebullets.splice(i,1); loseLife(); break; }
+    if(dist2(b.x,b.y,p.x,p.y)<(b.r+p.r-3)*(b.r+p.r-3)){
+      if(p.shield>0){ game.ebullets.splice(i,1); spark(b.x,b.y,'#5d8bff'); continue; }
+      if(p.inv<=0){ game.ebullets.splice(i,1); loseLife(); break; }
+    }
   }
 
   // --- 道具 ---
@@ -553,8 +684,12 @@ function update(dt){
 }
 
 function collect(it){
-  SFX.power();
-  if(it.kind==='power'){ game.player.power=Math.min(game.player.power+1,4); spark(it.x,it.y,'#36e0ff'); addScore(50); }
+  SFX.power(); const p=game.player;
+  if(it.kind==='power'){ p.power=Math.min(p.power+1,4); spark(it.x,it.y,'#36e0ff'); addScore(50); }
+  else if(it.kind==='weapon'){ p.weapon=p.weapon%3+1; toast('武器：'+WNAME[p.weapon]); }
+  else if(it.kind==='wing'){ if(p.wings<2){ p.wings++; toast('僚機 +1'); } else addScore(100); }
+  else if(it.kind==='shield'){ p.shield=Math.max(p.shield,8); toast('保護罩啟動'); }
+  else if(it.kind==='cruise'){ game.missiles=Math.min(game.missiles+3,99); toast('巡弋飛彈 +3'); }
   else if(it.kind==='bomb'){ game.bombs=Math.min(game.bombs+1,9); }
   else if(it.kind==='life'){ game.lives=Math.min(game.lives+1,5); }
   updateHUD();
@@ -625,7 +760,7 @@ function updateBoss(dt){
   }
   // 撞玩家
   const p=game.player;
-  if(p.inv<=0 && dist2(b.x,b.y,p.x,p.y)<(b.r+p.r)*(b.r+p.r)) loseLife();
+  if(!invuln() && dist2(b.x,b.y,p.x,p.y)<(b.r+p.r)*(b.r+p.r)) loseLife();
 }
 
 // ====================== 繪圖 ======================
@@ -641,6 +776,9 @@ function draw(){
   g.addColorStop(0,tint[0]); g.addColorStop(1,tint[1]);
   ctx.fillStyle=g; ctx.fillRect(0,0,BASE_W,BASE_H);
 
+  // 太空背景物件（最遠景）
+  game.scenery.forEach(o=>drawScenery(o));
+
   // 星星
   ctx.fillStyle='#9fd6ff';
   game.stars.forEach(s=>{ ctx.globalAlpha=clamp(s.s/2.2,.2,.9); ctx.fillRect(s.x,s.y,s.s,s.s); });
@@ -649,9 +787,15 @@ function draw(){
   if(state===State.PLAY||state===State.CLEAR||state===State.OVER){
     // 道具
     game.items.forEach(it=>drawItem(it));
-    // 玩家子彈
-    ctx.fillStyle='#aef6ff';
-    game.bullets.forEach(b=>{ ctx.beginPath(); ctx.fillRect(b.x-1.6,b.y-7,3.2,11); });
+    // 玩家子彈（依武器外型）
+    game.bullets.forEach(b=>{
+      if(b.laser){ ctx.fillStyle='#aef6ff'; ctx.fillRect(b.x-1.6,b.y-13,3.2,20); ctx.fillStyle='#fff'; ctx.fillRect(b.x-0.6,b.y-13,1.2,20); }
+      else if(b.spread){ ctx.fillStyle='#ffe39a'; ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,7); ctx.fill(); }
+      else if(b.wing){ ctx.fillStyle='#7dffc2'; ctx.fillRect(b.x-1.3,b.y-6,2.6,9); }
+      else { ctx.fillStyle='#aef6ff'; ctx.fillRect(b.x-1.6,b.y-7,3.2,11); }
+    });
+    // 巡弋飛彈
+    game.pmissiles.forEach(m=>drawMissile(m));
     // 敵人
     game.enemies.forEach(e=>drawEnemy(e));
     if(game.boss) drawBoss(game.boss);
@@ -676,12 +820,59 @@ function draw(){
   // 炸彈閃光
   if(game.flash>0){ ctx.globalAlpha=clamp(game.flash/20,0,0.7); ctx.fillStyle='#fff';
     ctx.fillRect(0,0,BASE_W,BASE_H); ctx.globalAlpha=1; }
+
+  // 提示文字
+  if(game.toast){ ctx.globalAlpha=clamp(game.toast.life/1.2,0,1);
+    ctx.fillStyle='#bff'; ctx.font='bold 18px "Microsoft JhengHei",sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(game.toast.txt, BASE_W/2, BASE_H*0.32); ctx.globalAlpha=1; }
+}
+
+// 太空背景物件
+function drawScenery(o){
+  ctx.save(); ctx.translate(o.x,o.y);
+  if(o.kind==='nebula'){
+    const g=ctx.createRadialGradient(0,0,0,0,0,o.r);
+    g.addColorStop(0,`hsla(${o.hue},70%,55%,0.16)`);
+    g.addColorStop(0.5,`hsla(${o.hue},70%,45%,0.07)`);
+    g.addColorStop(1,'hsla(0,0%,0%,0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,o.r,0,7); ctx.fill();
+  } else if(o.kind==='planet'){
+    const g=ctx.createRadialGradient(-o.r*0.3,-o.r*0.3,o.r*0.1,0,0,o.r);
+    g.addColorStop(0,`hsl(${o.hue},55%,60%)`);
+    g.addColorStop(0.7,`hsl(${o.hue},50%,38%)`);
+    g.addColorStop(1,`hsl(${o.hue},45%,16%)`);
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,o.r,0,7); ctx.fill();
+    if(o.ring){ ctx.save(); ctx.rotate(0.5); ctx.scale(1,0.32);
+      ctx.strokeStyle=`hsla(${o.hue},60%,70%,0.5)`; ctx.lineWidth=o.r*0.16;
+      ctx.beginPath(); ctx.arc(0,0,o.r*1.5,0,7); ctx.stroke(); ctx.restore(); }
+  } else { // asteroid
+    ctx.rotate(o.rot); ctx.fillStyle='#5a5a66'; ctx.strokeStyle='#3a3a44'; ctx.lineWidth=1.5;
+    ctx.beginPath();
+    o.pts.forEach((rr,i)=>{ const a=i/o.pts.length*Math.PI*2, x=Math.cos(a)*o.r*rr, y=Math.sin(a)*o.r*rr;
+      i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#43434d'; ctx.beginPath(); ctx.arc(o.r*0.2,-o.r*0.1,o.r*0.22,0,7); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// 巡弋飛彈外型
+function drawMissile(m){
+  ctx.save(); ctx.translate(m.x,m.y); ctx.rotate(Math.atan2(m.vy,m.vx)+Math.PI/2);
+  ctx.fillStyle='#ffd166';
+  ctx.beginPath(); ctx.moveTo(0,-7); ctx.lineTo(3,4); ctx.lineTo(-3,4); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#ff6b6b'; ctx.fillRect(-3,3,6,3);
+  ctx.restore();
 }
 
 function drawPlayer(){
   const p=game.player;
   if(p.inv>0 && Math.floor(p.inv/4)%2===0) return; // 無敵閃爍
   const t=now()/1000;
+  // 僚機
+  if(p.wings>=1) drawWingman(p.x-WING_OFF, p.y+WING_DY);
+  if(p.wings>=2) drawWingman(p.x+WING_OFF, p.y+WING_DY);
   ctx.save(); ctx.translate(p.x,p.y);
 
   // 引擎尾焰（機尾在 +y）
@@ -727,6 +918,28 @@ function drawPlayer(){
   ctx.lineTo(-Math.cos(pa)*pr,-21-Math.sin(pa)*pr*0.35); ctx.stroke();
   ctx.fillStyle='#e6fbff'; ctx.beginPath(); ctx.arc(0,-21,1.7,0,7); ctx.fill();
 
+  // 保護罩
+  if(p.shield>0){
+    const a = p.shield<2 ? (0.35+0.35*Math.sin(t*16)) : 0.5; // 即將消失閃爍
+    ctx.globalAlpha=a; ctx.strokeStyle='#7fb3ff'; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.arc(0,0,p.r+9,0,7); ctx.stroke();
+    ctx.globalAlpha=a*0.25; ctx.fillStyle='#5d8bff';
+    ctx.beginPath(); ctx.arc(0,0,p.r+9,0,7); ctx.fill(); ctx.globalAlpha=1;
+  }
+  ctx.restore();
+}
+
+// 僚機（迷你戰機）
+function drawWingman(x,y){
+  ctx.save(); ctx.translate(x,y);
+  ctx.fillStyle='#ffd166'; ctx.globalAlpha=rand(.5,.9);
+  ctx.beginPath(); ctx.moveTo(-2,9); ctx.lineTo(0,9+rand(4,9)); ctx.lineTo(2,9); ctx.fill();
+  ctx.globalAlpha=1;
+  ctx.fillStyle='#7dffc2';
+  ctx.beginPath();
+  ctx.moveTo(0,-11); ctx.lineTo(9,5); ctx.lineTo(3,4); ctx.lineTo(2,10);
+  ctx.lineTo(-2,10); ctx.lineTo(-3,4); ctx.lineTo(-9,5); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#0a2230'; ctx.beginPath(); ctx.arc(0,-2,1.8,0,7); ctx.fill();
   ctx.restore();
 }
 
@@ -808,16 +1021,18 @@ function drawEnemy(e){
   ctx.restore();
 }
 
+const ITEM_STYLE={
+  power:['#36e0ff','P'], weapon:['#c792ea','W'], wing:['#5fffa0','O'],
+  shield:['#5d8bff','S'], cruise:['#ff9a3b','C'], bomb:['#ffd166','B'], life:['#ff7b7b','♥'],
+};
 function drawItem(it){
   ctx.save(); ctx.translate(it.x,it.y);
   const pulse=1+Math.sin(now()/150)*0.12; ctx.scale(pulse,pulse);
-  let col,txt;
-  if(it.kind==='power'){ col='#36e0ff'; txt='P'; }
-  else if(it.kind==='bomb'){ col='#ffd166'; txt='B'; }
-  else { col='#ff7b7b'; txt='♥'; }
-  ctx.fillStyle=col; ctx.beginPath(); ctx.arc(0,0,it.r,0,7); ctx.fill();
+  const st=ITEM_STYLE[it.kind]||['#fff','?'];
+  ctx.fillStyle=st[0]; ctx.beginPath(); ctx.arc(0,0,it.r,0,7); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,.7)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(0,0,it.r,0,7); ctx.stroke();
   ctx.fillStyle='#021'; ctx.font='bold 12px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(txt,0,1);
+  ctx.fillText(st[1],0,1);
   ctx.restore();
 }
 
