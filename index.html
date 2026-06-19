@@ -63,6 +63,11 @@
   .gbtn small { font-size:10px; color:#9cf; font-weight:500; }
   .gbtn:active { background:rgba(54,224,255,.35); }
   #gbWeapon { border-color:#c792ea; } #gbMissile { border-color:#ff9a3b; } #gbBomb { border-color:#ffd166; }
+  #fsBtn { position:absolute; top:8px; left:50%; transform:translateX(-50%);
+    pointer-events:auto; cursor:pointer; border:1px solid rgba(255,255,255,.3);
+    background:rgba(8,20,34,.5); color:#cff; font-size:15px; line-height:1;
+    width:30px; height:26px; border-radius:6px; }
+  #fsBtn:active { background:rgba(54,224,255,.35); }
 </style>
 </head>
 <body>
@@ -87,6 +92,7 @@
           <span id="missiles" style="color:#ff9a3b">➤ x3</span>
         </div>
       </div>
+      <button id="fsBtn" title="全螢幕">⛶</button>
       <div id="touchHint">拖曳移動・自動射擊・右下按鈕：武器/飛彈/炸彈</div>
       <div id="btnBar" class="hidden">
         <div class="gbtn" id="gbWeapon">武器<small id="gbWeaponN">1</small></div>
@@ -101,6 +107,7 @@
       <p class="hint">擊落敵機、收集道具、撐過 6 關擊敗每一關的 BOSS。<br>
         道具：<b style="color:#36e0ff">P</b>火力 <b style="color:#c792ea">W</b>換武器 <b style="color:#5fffa0">O</b>僚機 <b style="color:#5d8bff">S</b>護罩 <b style="color:#ff9a3b">C</b>飛彈 <b style="color:#ffd166">B</b>炸彈 <b style="color:#ff7b7b">♥</b>補血</p>
       <button class="btn" id="startBtn">▶ 開始遊戲</button>
+      <button class="btn" id="fsStartBtn" style="padding:8px 20px;font-size:13px">⛶ 進入全螢幕</button>
       <div class="ctrls">
         <div>移動：<kbd>↑↓←→</kbd> / <kbd>W A S D</kbd> / 觸控拖曳　射擊：自動</div>
         <div>武器切換：<kbd>1</kbd><kbd>2</kbd><kbd>3</kbd>　炸彈：<kbd>空白</kbd>/<kbd>B</kbd>　巡弋飛彈：<kbd>M</kbd></div>
@@ -536,6 +543,19 @@ function bindBtn(id,fn){ const el=document.getElementById(id);
 bindBtn('gbWeapon',()=>{ if(state===State.PLAY&&game.player){ game.player.weapon=game.player.weapon%3+1; toast('武器：'+WNAME[game.player.weapon]); updateHUD(); } });
 bindBtn('gbMissile',fireMissile);
 bindBtn('gbBomb',useBomb);
+// 全螢幕切換
+function toggleFullscreen(){
+  const fsEl=document.fullscreenElement||document.webkitFullscreenElement;
+  const el=document.documentElement;
+  try{
+    if(!fsEl){ (el.requestFullscreen||el.webkitRequestFullscreen).call(el); }
+    else { (document.exitFullscreen||document.webkitExitFullscreen).call(document); }
+  }catch(e){}
+}
+document.getElementById('fsBtn').onclick=toggleFullscreen;
+document.getElementById('fsStartBtn').onclick=toggleFullscreen;
+document.addEventListener('fullscreenchange',()=>setTimeout(resize,60));
+document.addEventListener('webkitfullscreenchange',()=>setTimeout(resize,60));
 document.getElementById('saveBtn').onclick=()=>{
   if(!document.getElementById('nameRow').classList.contains('hidden')){
     const nm=document.getElementById('nameInput').value.trim().slice(0,8);
