@@ -111,7 +111,7 @@
       <div class="ctrls">
         <div>移動：<kbd>↑↓←→</kbd> / <kbd>W A S D</kbd> / 觸控拖曳　射擊：自動</div>
         <div>武器切換：<kbd>1</kbd><kbd>2</kbd><kbd>3</kbd>　炸彈：<kbd>空白</kbd>/<kbd>B</kbd>　巡弋飛彈：<kbd>M</kbd></div>
-        <div>三種武器：火神砲(散布) ・ 雷射(貫穿) ・ 散彈(扇形)</div>
+        <div>武器：火神砲(均衡) ・ 雷射(貫穿打王) ・ 散彈(掃群近戰)</div>
         <div style="color:#789">手機：右下角按鈕操作 武器 / 飛彈 / 炸彈，雙擊也可放炸彈</div>
       </div>
       <div id="hiTable"></div>
@@ -369,23 +369,24 @@ function killBoss(){
 function playerShoot(){
   const p=game.player; const y=p.y-16; const lvl=p.power;
   SFX.shoot();
-  if(p.weapon===1){            // 火神砲：前方集束散布
-    if(lvl===1){ game.bullets.push(bShot(p.x,y,0,-580)); }
-    else if(lvl===2){ game.bullets.push(bShot(p.x-7,y,0,-580)); game.bullets.push(bShot(p.x+7,y,0,-580)); }
-    else if(lvl===3){ game.bullets.push(bShot(p.x,y,0,-600)); game.bullets.push(bShot(p.x-9,y,-90,-560)); game.bullets.push(bShot(p.x+9,y,90,-560)); }
-    else { game.bullets.push(bShot(p.x-7,y,0,-620)); game.bullets.push(bShot(p.x+7,y,0,-620));
-           game.bullets.push(bShot(p.x-14,y,-160,-560)); game.bullets.push(bShot(p.x+14,y,160,-560)); }
-    p.fireCd = lvl>=3?7:9;
-  } else if(p.weapon===2){     // 雷射：高速貫穿
-    const cnt=Math.min(lvl,4);
-    for(let i=0;i<cnt;i++){ const off=(i-(cnt-1)/2)*9;
-      const b=bShot(p.x+off,y,0,-950); b.r=3; b.dmg=1; b.pierce=true; b.laser=true; game.bullets.push(b); }
+  if(p.weapon===1){            // 火神砲：均衡，穩定前方火力
+    if(lvl===1){ game.bullets.push(bShot(p.x,y,0,-600)); }
+    else if(lvl===2){ game.bullets.push(bShot(p.x-7,y,0,-600)); game.bullets.push(bShot(p.x+7,y,0,-600)); }
+    else if(lvl===3){ game.bullets.push(bShot(p.x,y,0,-630)); game.bullets.push(bShot(p.x-9,y,-80,-600)); game.bullets.push(bShot(p.x+9,y,80,-600)); }
+    else { game.bullets.push(bShot(p.x-7,y,0,-650)); game.bullets.push(bShot(p.x+7,y,0,-650));
+           game.bullets.push(bShot(p.x-14,y,-150,-600)); game.bullets.push(bShot(p.x+14,y,150,-600)); }
+    p.fireCd = lvl>=3?6:8;
+  } else if(p.weapon===2){     // 雷射：高速貫穿，單體/直線最強，覆蓋窄
+    const cnt = lvl>=4?2 : lvl>=3?2 : 1;        // 刻意少而窄
+    for(let i=0;i<cnt;i++){ const off=(i-(cnt-1)/2)*7;
+      const b=bShot(p.x+off,y,0,-1000); b.r=3; b.dmg=2; b.pierce=true; b.laser=true; game.bullets.push(b); }
     p.fireCd = 5;
-  } else {                     // 散彈：寬扇形覆蓋
-    const pellets=3+lvl*2;
-    for(let i=0;i<pellets;i++){ const a=-Math.PI/2 + (i-(pellets-1)/2)*0.17, sp=520;
-      const b=bShot(p.x,y,Math.cos(a)*sp,Math.sin(a)*sp); b.spread=true; game.bullets.push(b); }
-    p.fireCd = 11;
+  } else {                     // 散彈：寬扇形掃群，近戰猛、遠距弱
+    const pellets=3+lvl*2;                       // lvl4 → 11 顆
+    const spreadStep=0.15+lvl*0.012;
+    for(let i=0;i<pellets;i++){ const a=-Math.PI/2 + (i-(pellets-1)/2)*spreadStep, sp=540;
+      const b=bShot(p.x,y,Math.cos(a)*sp,Math.sin(a)*sp); b.spread=true; b.r=4.5; game.bullets.push(b); }
+    p.fireCd = 10;
   }
   // 僚機齊射
   if(p.wings>=1) game.bullets.push(wShot(p.x-WING_OFF, p.y+WING_DY-10));
@@ -619,16 +620,20 @@ function update(dt){
   for(let i=game.bullets.length-1;i>=0;i--){
     const b=game.bullets[i]; b.x+=b.vx*dt; b.y+=b.vy*dt;
     if(b.y<-10||b.x<-10||b.x>BASE_W+10){ game.bullets.splice(i,1); continue; }
+    if(b.hitCd>0) b.hitCd-=dt;
     // 命中敵人
-    let hit=false;
+    let hit=false, dealt=false;
     for(const e of game.enemies){
-      if(dist2(b.x,b.y,e.x,e.y)<(e.r+b.r)*(e.r+b.r)){ damageEnemy(e,b.dmg); hit=true; break; }
+      if(dist2(b.x,b.y,e.x,e.y)<(e.r+b.r)*(e.r+b.r)){ hit=true;
+        if(!b.pierce || b.hitCd<=0){ damageEnemy(e,b.dmg); dealt=true; } break; }
     }
     if(!hit && game.boss){
       const e=game.boss;
-      if(!e.entering && dist2(b.x,b.y,e.x,e.y)<(e.r+b.r)*(e.r+b.r)){ damageEnemy(e,b.dmg); hit=true; }
+      if(!e.entering && dist2(b.x,b.y,e.x,e.y)<(e.r+b.r)*(e.r+b.r)){ hit=true;
+        if(!b.pierce || b.hitCd<=0){ damageEnemy(e,b.dmg); dealt=true; } }
     }
-    if(hit && !b.pierce) game.bullets.splice(i,1);
+    if(b.pierce){ if(dealt) b.hitCd=0.07; }   // 貫穿彈：同目標命中冷卻
+    else if(hit) game.bullets.splice(i,1);
   }
 
   // --- 巡弋飛彈（追蹤）---
