@@ -79,6 +79,25 @@
     font-size:14px; font-weight:600; }
   .diffBtn.sel { border-color:var(--accent); background:rgba(54,224,255,.18); color:var(--accent); }
   .boardName { font-size:12px; letter-spacing:2px; color:#7fb8d8; margin-bottom:4px; }
+  /* 關卡編輯器 */
+  #editorScreen { gap:10px; justify-content:flex-start; padding-top:30px; overflow-y:auto; }
+  .edrow { display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:center; pointer-events:auto; }
+  #edWaves { width:100%; max-width:360px; max-height:46vh; overflow-y:auto; display:flex; flex-direction:column; gap:6px;
+    pointer-events:auto; padding:4px; }
+  .edwave { display:flex; gap:6px; align-items:center; background:#0a1422; border:1px solid #1d3a52;
+    border-radius:6px; padding:6px; font-size:13px; }
+  .edwave .idx { color:#7fb8d8; width:20px; text-align:center; }
+  .edwave select,.edwave input { background:#0d1c2e; color:#cff; border:1px solid #2a567a; border-radius:4px;
+    padding:4px; font-size:13px; }
+  .edwave input { width:48px; text-align:center; }
+  .edwave .del { color:#ff7b7b; cursor:pointer; border:1px solid #5a2a2a; border-radius:4px; padding:2px 8px; background:#1a0e0e; }
+  .ebtn { pointer-events:auto; cursor:pointer; border:1px solid #2a567a; background:rgba(10,20,34,.7);
+    color:#9fc; padding:8px 16px; border-radius:6px; font-size:13px; font-weight:600; }
+  .ebtn:active { background:rgba(54,224,255,.2); }
+  .edStage { pointer-events:auto; cursor:pointer; border:1px solid #2a567a; background:#0a1422;
+    color:#9fc; width:34px; height:30px; border-radius:6px; font-weight:700; }
+  .edStage.sel { border-color:var(--accent); background:rgba(54,224,255,.18); color:var(--accent); }
+  .edStage.custom { box-shadow:0 0 0 2px #ffd16655 inset; }
 </style>
 </head>
 <body>
@@ -125,7 +144,10 @@
         <button class="diffBtn" data-d="2">困難</button>
       </div>
       <button class="btn" id="startBtn">▶ 開始遊戲</button>
-      <button class="btn" id="fsStartBtn" style="padding:8px 20px;font-size:13px">⛶ 進入全螢幕</button>
+      <div style="display:flex;gap:10px">
+        <button class="btn" id="editBtn" style="padding:8px 18px;font-size:13px">🛠 關卡編輯器</button>
+        <button class="btn" id="fsStartBtn" style="padding:8px 18px;font-size:13px">⛶ 全螢幕</button>
+      </div>
       <div class="ctrls">
         <div>移動：<kbd>↑↓←→</kbd> / <kbd>W A S D</kbd> / 觸控拖曳　射擊：自動</div>
         <div>武器切換：<kbd>1</kbd><kbd>2</kbd><kbd>3</kbd>　炸彈：<kbd>空白</kbd>/<kbd>B</kbd>　巡弋飛彈：<kbd>M</kbd></div>
@@ -152,6 +174,23 @@
       </div>
       <button class="btn" id="saveBtn">儲存並重新開始</button>
       <div id="overTable"></div>
+    </div>
+
+    <!-- LEVEL EDITOR -->
+    <div class="screen hidden" id="editorScreen">
+      <h2 style="font-size:22px">🛠 關卡編輯器</h2>
+      <div id="edStageSel" class="edrow"></div>
+      <div id="edWaves"></div>
+      <div class="edrow">
+        <button class="ebtn" id="edAdd">＋ 新增波次</button>
+        <button class="ebtn" id="edSave">💾 儲存</button>
+        <button class="ebtn" id="edReset">還原預設</button>
+      </div>
+      <div class="edrow">
+        <button class="btn" id="edTest" style="padding:9px 22px;font-size:14px">▶ 測試此關</button>
+        <button class="btn" id="edBack" style="padding:9px 22px;font-size:14px">← 返回</button>
+      </div>
+      <p class="hint" id="edHint" style="font-size:12px">編輯每一波的敵種 / 數量 / 出現間隔，存檔後遊戲將套用你的關卡。</p>
     </div>
   </div>
 </div>
@@ -485,32 +524,47 @@ function explode(x,y,color,r){ const n=Math.floor(r); for(let i=0;i<n;i++){
     color:Math.random()<.5?color:'#fff', size:rand(2,r/5)}); } game.shake=Math.min(game.shake+r*0.3,22); }
 
 // ====================== 關卡 / 波次 ======================
+// 預設波次：每筆 [敵種, 數量, 間隔frame]
+const DEFAULT_WAVES=[
+  // stage1 — 序章，較緩但拉長
+  [ ['scout',6,32],['scout',6,30],['fighter',3,70],['scout',8,26],['fighter',4,56],
+    ['scout',8,24],['heavy',2,100],['fighter',5,48],['scout',10,22],['fighter',5,46],['heavy',3,80] ],
+  // stage2
+  [ ['scout',8,26],['fighter',4,52],['scout',9,24],['heavy',3,80],['fighter',6,42],
+    ['scout',10,22],['fighter',7,40],['heavy',4,66],['scout',11,20],['fighter',7,38],['heavy',4,58] ],
+  // stage3
+  [ ['fighter',5,42],['heavy',3,70],['scout',10,20],['fighter',7,36],['heavy',4,62],
+    ['scout',12,18],['fighter',8,34],['heavy',5,54],['fighter',8,32],['heavy',5,50],['heavy',6,46] ],
+  // stage4
+  [ ['scout',10,18],['fighter',6,38],['heavy',4,58],['fighter',8,32],['heavy',5,52],
+    ['scout',12,16],['fighter',9,30],['heavy',6,48],['fighter',9,28],['heavy',6,44],['fighter',10,28],['heavy',7,42] ],
+  // stage5
+  [ ['fighter',7,34],['heavy',5,52],['scout',12,15],['fighter',9,30],['heavy',6,46],
+    ['fighter',10,28],['heavy',7,42],['scout',14,14],['fighter',11,26],['heavy',7,40],['fighter',11,26],['heavy',8,38] ],
+  // stage6 — 最終戰場
+  [ ['heavy',5,46],['fighter',9,30],['scout',14,14],['heavy',7,42],['fighter',10,28],
+    ['heavy',8,38],['scout',16,12],['fighter',11,26],['heavy',8,36],['fighter',12,24],
+    ['heavy',9,34],['fighter',12,24],['heavy',10,32] ],
+];
+const LV_KEY='striker1945_levels';
+function loadLevels(){ try{ return JSON.parse(localStorage.getItem(LV_KEY))||{}; }catch(e){ return {}; } }
+function saveLevel(stage,waves){ const all=loadLevels(); all[String(stage)]=waves;
+  try{ localStorage.setItem(LV_KEY,JSON.stringify(all)); }catch(e){} }
+function resetLevel(stage){ const all=loadLevels(); delete all[String(stage)];
+  try{ localStorage.setItem(LV_KEY,JSON.stringify(all)); }catch(e){} }
+let runtimeWaves={};   // 編輯器「測試」用的暫時覆寫（不存檔）
+function getWaves(s){ if(runtimeWaves[s]) return runtimeWaves[s];
+  const c=loadLevels()[String(s)];
+  return (Array.isArray(c)&&c.length)? c : DEFAULT_WAVES[s-1]; }
+
 function buildStage(s){
   game.spawnQueue=[]; game.bossPending=false; game.boss=null; game.warnT=0; game.warnBeep=0;
   let t=90; // frame offset
-  const waves=[
-    // stage1 — 序章，較緩但拉長
-    [ ['scout',6,32],['scout',6,30],['fighter',3,70],['scout',8,26],['fighter',4,56],
-      ['scout',8,24],['heavy',2,100],['fighter',5,48],['scout',10,22],['fighter',5,46],['heavy',3,80] ],
-    // stage2
-    [ ['scout',8,26],['fighter',4,52],['scout',9,24],['heavy',3,80],['fighter',6,42],
-      ['scout',10,22],['fighter',7,40],['heavy',4,66],['scout',11,20],['fighter',7,38],['heavy',4,58] ],
-    // stage3
-    [ ['fighter',5,42],['heavy',3,70],['scout',10,20],['fighter',7,36],['heavy',4,62],
-      ['scout',12,18],['fighter',8,34],['heavy',5,54],['fighter',8,32],['heavy',5,50],['heavy',6,46] ],
-    // stage4
-    [ ['scout',10,18],['fighter',6,38],['heavy',4,58],['fighter',8,32],['heavy',5,52],
-      ['scout',12,16],['fighter',9,30],['heavy',6,48],['fighter',9,28],['heavy',6,44],['fighter',10,28],['heavy',7,42] ],
-    // stage5
-    [ ['fighter',7,34],['heavy',5,52],['scout',12,15],['fighter',9,30],['heavy',6,46],
-      ['fighter',10,28],['heavy',7,42],['scout',14,14],['fighter',11,26],['heavy',7,40],['fighter',11,26],['heavy',8,38] ],
-    // stage6 — 最終戰場
-    [ ['heavy',5,46],['fighter',9,30],['scout',14,14],['heavy',7,42],['fighter',10,28],
-      ['heavy',8,38],['scout',16,12],['fighter',11,26],['heavy',8,36],['fighter',12,24],
-      ['heavy',9,34],['fighter',12,24],['heavy',10,32] ],
-  ][s-1];
+  const waves=getWaves(s);
   waves.forEach(w=>{
-    const [type,count,gap]=w;
+    let [type,count,gap]=w;
+    if(!['scout','fighter','heavy'].includes(type)) type='scout';
+    count=clamp(count|0,1,30); gap=clamp(gap|0,8,200);
     for(let i=0;i<count;i++){
       game.spawnQueue.push({frame:t, type, x:rand(40,BASE_W-40)});
       t+=gap;
@@ -522,17 +576,18 @@ function buildStage(s){
 }
 
 // ====================== 流程 ======================
-function startGame(){
+function startGame(startStage){
+  startStage = clamp(startStage|0 || 1, 1, MAX_STAGE);
   audio(); if(AC&&AC.state==='suspended') AC.resume();
   const d=DIFF[selDiff]; game.diffSpd=d.espd; game.diffGap=d.gap;
-  game.score=0; game.stage=1; game.lives=d.lives; game.bombs=3; game.missiles=3;
+  game.score=0; game.stage=startStage; game.lives=d.lives; game.bombs=3; game.missiles=3;
   game.bullets=[]; game.enemies=[]; game.ebullets=[]; game.items=[]; game.particles=[];
   game.pmissiles=[]; game.scenery=[]; game.scenT=0; game.toast=null;
   game.combo=0; game.comboTimer=0; game.comboPop=0; game.comboBest=0;
   game.player=makePlayer(); initStars();
-  buildStage(1);
-  hide('titleScreen'); hide('clearScreen'); hide('overScreen');
-  Music.key=0; Music.start();
+  buildStage(startStage);
+  hide('titleScreen'); hide('clearScreen'); hide('overScreen'); hide('editorScreen');
+  Music.key=[0,0,2,3,5,7][startStage-1]||0; Music.start();
   state=State.PLAY; updateHUD();
 }
 function stageClear(){
@@ -635,7 +690,7 @@ function esc(s){ return String(s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&
 // ====================== UI 綁定 ======================
 function show(id){ document.getElementById(id).classList.remove('hidden'); }
 function hide(id){ document.getElementById(id).classList.add('hidden'); }
-document.getElementById('startBtn').onclick=startGame;
+document.getElementById('startBtn').onclick=()=>{ runtimeWaves={}; startGame(1); };
 document.getElementById('nextBtn').onclick=nextStage;
 // 觸控按鈕（手機）
 function bindBtn(id,fn){ const el=document.getElementById(id);
@@ -665,6 +720,47 @@ document.querySelectorAll('.diffBtn').forEach(btn=>{
 });
 document.addEventListener('fullscreenchange',()=>setTimeout(resize,60));
 document.addEventListener('webkitfullscreenchange',()=>setTimeout(resize,60));
+
+// ====================== 關卡編輯器 ======================
+const ED={stage:1, waves:[]};
+const ENEMY_OPTS=[['scout','小型機'],['fighter','中型機'],['heavy','重型機']];
+function edClone(w){ return w.map(r=>[r[0], r[1], r[2]]); }
+function openEditor(){ hide('titleScreen'); show('editorScreen'); ED.stage=1; edLoad(); }
+function closeEditor(){ hide('editorScreen'); show('titleScreen'); }
+function edLoad(){ ED.waves=edClone(getWaves(ED.stage)); edRenderStages(); edRenderWaves(); edSetHint(); }
+function edSetHint(msg){ const c=!!loadLevels()[String(ED.stage)];
+  document.getElementById('edHint').textContent = msg || ('第 '+ED.stage+' 關'+(c?'（已自訂）':'（預設）')+'　共 '+ED.waves.length+' 波。編輯後請「儲存」或「測試此關」。'); }
+function edRenderStages(){
+  const sel=document.getElementById('edStageSel'); const lv=loadLevels();
+  let h='<span class="label" style="align-self:center">關卡</span>';
+  for(let s=1;s<=MAX_STAGE;s++) h+=`<button class="edStage${s===ED.stage?' sel':''}${lv[String(s)]?' custom':''}" data-s="${s}">${s}</button>`;
+  sel.innerHTML=h;
+  sel.querySelectorAll('.edStage').forEach(b=>b.onclick=()=>{ ED.stage=+b.dataset.s; edLoad(); });
+}
+function edRenderWaves(){
+  const box=document.getElementById('edWaves');
+  box.innerHTML = ED.waves.map((w,i)=>{
+    const opts=ENEMY_OPTS.map(([v,l])=>`<option value="${v}"${w[0]===v?' selected':''}>${l}</option>`).join('');
+    return `<div class="edwave"><span class="idx">${i+1}</span>
+      <select data-i="${i}" data-f="0">${opts}</select>
+      <label style="color:#7fb8d8">數量</label><input type="number" min="1" max="30" data-i="${i}" data-f="1" value="${w[1]}">
+      <label style="color:#7fb8d8">間隔</label><input type="number" min="8" max="200" data-i="${i}" data-f="2" value="${w[2]}">
+      <span class="del" data-del="${i}">✕</span></div>`;
+  }).join('') || '<p class="hint">尚無波次，請新增。</p>';
+  box.querySelectorAll('select,input').forEach(el=>{
+    el.onchange=()=>{ const i=+el.dataset.i, f=+el.dataset.f;
+      ED.waves[i][f] = f===0 ? el.value : clamp(parseInt(el.value)||1, f===1?1:8, f===1?30:200); edSetHint(); };
+  });
+  box.querySelectorAll('[data-del]').forEach(el=>{ el.onclick=()=>{ ED.waves.splice(+el.dataset.del,1); edRenderWaves(); edSetHint(); }; });
+}
+document.getElementById('editBtn').onclick=openEditor;
+document.getElementById('edBack').onclick=closeEditor;
+document.getElementById('edAdd').onclick=()=>{ ED.waves.push(['scout',6,30]); edRenderWaves(); edSetHint(); };
+document.getElementById('edSave').onclick=()=>{ if(!ED.waves.length){ edSetHint('至少要有一波才能儲存。'); return; }
+  saveLevel(ED.stage, edClone(ED.waves)); edRenderStages(); edSetHint('✅ 已儲存第 '+ED.stage+' 關（'+ED.waves.length+' 波）。'); };
+document.getElementById('edReset').onclick=()=>{ resetLevel(ED.stage); ED.waves=edClone(DEFAULT_WAVES[ED.stage-1]); edRenderStages(); edRenderWaves(); edSetHint('已還原第 '+ED.stage+' 關預設。'); };
+document.getElementById('edTest').onclick=()=>{ if(!ED.waves.length){ edSetHint('至少要有一波才能測試。'); return; }
+  saveLevel(ED.stage, edClone(ED.waves)); runtimeWaves={}; startGame(ED.stage); };
 document.getElementById('saveBtn').onclick=()=>{
   if(!document.getElementById('nameRow').classList.contains('hidden')){
     const nm=document.getElementById('nameInput').value.trim().slice(0,8);
@@ -852,6 +948,17 @@ function ringShot(x,y,n,sp,off=0){
   for(let i=0;i<n;i++){ const a=off+i*(Math.PI*2/n);
     game.ebullets.push(eShot(x,y,Math.cos(a)*sp,Math.sin(a)*sp,5)); }
 }
+// 十字爆發（八方）
+function crossShot(x,y,off=0,sp=160){
+  for(let i=0;i<8;i++){ const a=off+i*Math.PI/4;
+    game.ebullets.push(eShot(x,y,Math.cos(a)*sp,Math.sin(a)*sp,5)); }
+}
+// 瞄準彈牆（朝玩家的寬扇，中央留縫）
+function aimedWall(x,y,n,sp){
+  const p=game.player, base=Math.atan2(p.y-y,p.x-x), mid=(n-1)/2;
+  for(let i=0;i<n;i++){ if(i===Math.round(mid)) continue; // 中央留縫可閃避
+    const a=base+(i-mid)*0.17; game.ebullets.push(eShot(x,y,Math.cos(a)*sp,Math.sin(a)*sp,5)); }
+}
 
 function updateBoss(dt){
   const b=game.boss; b.t+=dt;
@@ -860,10 +967,16 @@ function updateBoss(dt){
     return;
   }
   if(b.hit>0)b.hit--;
-  // 左右移動
-  b.x = BASE_W/2 + Math.sin(b.t*0.8)*(BASE_W/2-60);
-  // 攻擊模式（依關卡強度不同；節奏隨難度縮放）
-  b.patternT+=dt/game.diffGap;
+  // === 階段（依血量）：越低血越狂暴 ===
+  const hpFrac=clamp(b.hp/b.maxhp,0,1);
+  const phase = hpFrac>0.66?1 : hpFrac>0.33?2 : 3;
+  if(phase>(b.phase||1)){ b.phase=phase; game.flash=Math.max(game.flash,8); game.shake=Math.max(game.shake,12);
+    SFX.boss(); toast(phase>=3?'⚠ BOSS 狂暴化!':'BOSS 強化!'); }
+  const enrage = 1 + (phase-1)*0.4;     // 階段越高、射速越快
+  // 左右移動（後期更快）
+  b.x = BASE_W/2 + Math.sin(b.t*(0.8+(phase-1)*0.25))*(BASE_W/2-60);
+  // 攻擊模式（依關卡強度不同；節奏隨難度與階段縮放）
+  b.patternT+=dt/game.diffGap*enrage;
   const lvl=b.stage;
   if(lvl===1){
     if(b.patternT>0.5){ b.patternT=0; fanShot(b.x,b.y+30,5,150); }
@@ -900,6 +1013,12 @@ function updateBoss(dt){
       ringShot(b.x,b.y,8,160,-b.spin*1.2);
     }
     if(Math.floor(b.t*4)%3===0 && b.patternT<0.02){ fanShot(b.x,b.y+30,3,300); aimShot(b.x,b.y,330); }
+  }
+  // === 階段額外彈幕（所有 Boss 通用，血量越低越兇）===
+  b.phaseT=(b.phaseT||0)+dt/game.diffGap;
+  if(phase>=2 && b.phaseT > (phase>=3?1.05:1.7)){ b.phaseT=0;
+    if(phase>=3){ crossShot(b.x,b.y,b.t*1.3,170); aimedWall(b.x,b.y+20,8,240); }
+    else { aimedWall(b.x,b.y+20,6,210); }
   }
   // 撞玩家
   const p=game.player;
