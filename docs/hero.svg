@@ -1,0 +1,159 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" font-family="'Segoe UI','Microsoft JhengHei',sans-serif">
+  <defs>
+    <linearGradient id="space" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1430"/><stop offset="1" stop-color="#02040a"/>
+    </linearGradient>
+    <radialGradient id="planet" cx="0.35" cy="0.35" r="0.75">
+      <stop offset="0" stop-color="#6fa0d8"/><stop offset="0.7" stop-color="#34548c"/><stop offset="1" stop-color="#0f1b3a"/>
+    </radialGradient>
+    <radialGradient id="neb" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#7a3cc0" stop-opacity="0.35"/><stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="pwing" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1b94b8"/><stop offset="0.5" stop-color="#7ff0ff"/><stop offset="1" stop-color="#1b94b8"/>
+    </linearGradient>
+    <linearGradient id="bhull" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#b23838"/><stop offset="0.5" stop-color="#ff7a7a"/><stop offset="1" stop-color="#b23838"/>
+    </linearGradient>
+    <linearGradient id="title" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9af6ff"/><stop offset="1" stop-color="#36e0ff"/>
+    </linearGradient>
+    <clipPath id="screen"><rect x="40" y="30" width="340" height="460" rx="14"/></clipPath>
+  </defs>
+
+  <rect width="1200" height="520" fill="#05080f"/>
+
+  <!-- ===== Gameplay panel ===== -->
+  <g clip-path="url(#screen)">
+    <rect x="40" y="30" width="340" height="460" fill="url(#space)"/>
+    <circle cx="150" cy="240" r="150" fill="url(#neb)"/>
+    <!-- ringed planet -->
+    <g transform="translate(120,110)">
+      <ellipse cx="0" cy="0" rx="68" ry="22" fill="none" stroke="#86b4e6" stroke-opacity="0.45" stroke-width="7" transform="rotate(-18)"/>
+      <circle r="34" fill="url(#planet)"/>
+    </g>
+    <!-- stars -->
+    <g fill="#bfe0ff">
+      <circle cx="70" cy="70" r="1.5"/><circle cx="300" cy="60" r="1.8"/><circle cx="350" cy="130" r="1.2"/>
+      <circle cx="210" cy="90" r="1"/><circle cx="320" cy="220" r="1.6"/><circle cx="60" cy="300" r="1.4"/>
+      <circle cx="120" cy="380" r="1.2"/><circle cx="330" cy="350" r="1.6"/><circle cx="250" cy="430" r="1.3"/>
+      <circle cx="90" cy="200" r="1"/><circle cx="360" cy="430" r="1.4"/><circle cx="180" cy="300" r="1"/>
+    </g>
+
+    <!-- ===== BOSS warship (top) ===== -->
+    <g transform="translate(210,150) scale(1.05)">
+      <!-- engine flames -->
+      <g fill="#ff9a3b" opacity="0.85">
+        <path d="M-34,-30 L-30,-50 L-26,-30 Z"/><path d="M-16,-30 L-12,-52 L-8,-30 Z"/>
+        <path d="M8,-30 L12,-52 L16,-30 Z"/><path d="M26,-30 L30,-50 L34,-30 Z"/>
+      </g>
+      <!-- wings -->
+      <path d="M-18,8 L-70,-18 L-66,-26 L-16,-10 L16,-10 L66,-26 L70,-18 L18,8 Z" fill="#8e2f2f"/>
+      <rect x="-48" y="-30" width="8" height="22" fill="#6e2020"/><rect x="-30" y="-30" width="8" height="22" fill="#6e2020"/>
+      <rect x="22" y="-30" width="8" height="22" fill="#6e2020"/><rect x="40" y="-30" width="8" height="22" fill="#6e2020"/>
+      <!-- hull -->
+      <path d="M0,44 L26,28 L34,2 L26,-22 L12,-32 L0,-30 L-12,-32 L-26,-22 L-34,2 L-26,28 Z" fill="url(#bhull)"/>
+      <rect x="-22" y="-6" width="44" height="12" fill="#000" opacity="0.3"/>
+      <!-- turrets -->
+      <g fill="#7a2424"><circle cx="-22" cy="18" r="4.5"/><circle cx="22" cy="18" r="4.5"/><circle cx="-28" cy="2" r="4.5"/><circle cx="28" cy="2" r="4.5"/></g>
+      <!-- core -->
+      <circle cx="0" cy="2" r="9" fill="#0a1420"/><circle cx="0" cy="2" r="6.5" fill="#ffd166"/><circle cx="0" cy="2" r="2.6" fill="#fff"/>
+    </g>
+    <!-- boss health bar -->
+    <rect x="56" y="58" width="308" height="8" rx="3" fill="#000" opacity="0.5"/>
+    <rect x="56" y="58" width="192" height="8" rx="3" fill="#ff3b3b"/>
+    <text x="56" y="52" fill="#fff" font-size="10" font-weight="700">BOSS  STAGE 1</text>
+
+    <!-- enemy bullets -->
+    <g fill="#ff5252"><circle cx="190" cy="250" r="5"/><circle cx="232" cy="270" r="5"/><circle cx="170" cy="290" r="5"/><circle cx="250" cy="300" r="5"/></g>
+
+    <!-- ===== Enemy planes ===== -->
+    <g transform="translate(150,300) scale(1.2)" fill="#ff8e8e">
+      <path d="M0,1 L-14,-6 L-13,-9 L0,-4 L13,-9 L14,-6 Z"/>
+      <path d="M0,12 L3,1 L3,-12 L0,-14 L-3,-12 L-3,1 Z"/>
+    </g>
+    <g transform="translate(270,330) scale(1.2)" fill="#ffb86b">
+      <path d="M0,2 L-17,-4 L-16,-8 L0,-3 L16,-8 L17,-4 Z"/>
+      <path d="M0,15 L4,3 L4,-7 L0,-10 L-4,-7 L-4,3 Z"/>
+    </g>
+
+    <!-- ===== Player bullets ===== -->
+    <g fill="#aef6ff">
+      <rect x="203" y="350" width="3.2" height="11"/><rect x="217" y="350" width="3.2" height="11"/>
+      <rect x="203" y="372" width="3.2" height="11"/><rect x="217" y="372" width="3.2" height="11"/>
+      <rect x="203" y="394" width="3.2" height="11"/><rect x="217" y="394" width="3.2" height="11"/>
+    </g>
+
+    <!-- ===== Player ship (with 2 wingmen + shield) ===== -->
+    <!-- shield -->
+    <circle cx="210" cy="430" r="34" fill="#5d8bff" opacity="0.12"/><circle cx="210" cy="430" r="34" fill="none" stroke="#7fb3ff" stroke-width="2.5" opacity="0.5"/>
+    <!-- wingmen -->
+    <g transform="translate(165,442) scale(1.1)" fill="#7dffc2"><path d="M0,-11 L9,5 L3,4 L2,10 L-2,10 L-3,4 L-9,5 Z"/></g>
+    <g transform="translate(255,442) scale(1.1)" fill="#7dffc2"><path d="M0,-11 L9,5 L3,4 L2,10 L-2,10 L-3,4 L-9,5 Z"/></g>
+    <!-- player -->
+    <g transform="translate(210,430) scale(1.7)">
+      <path d="M-3,18 L0,34 L3,18 Z" fill="#ff9a3b"/>
+      <path d="M-12,12 L-3,7 L3,7 L12,12 L10,16 L-10,16 Z" fill="#1f9fc4"/>
+      <path d="M-4,-4 L-23,7 L-21,11 L-4,7 L4,7 L21,11 L23,7 L4,-4 Z" fill="url(#pwing)"/>
+      <path d="M0,-21 L4,-9 L4.5,13 L2.5,18.5 L-2.5,18.5 L-4.5,13 L-4,-9 Z" fill="#7ff0ff"/>
+      <ellipse cx="0" cy="-1" rx="2.7" ry="5.2" fill="#0a2230"/><ellipse cx="0" cy="-2" rx="1.6" ry="3.2" fill="#bdf2ff"/>
+      <circle cx="0" cy="-21" r="1.7" fill="#e6fbff"/>
+    </g>
+
+    <!-- HUD -->
+    <text x="52" y="86" fill="#7fb8d8" font-size="10" letter-spacing="1">SCORE</text>
+    <text x="52" y="104" fill="#36e0ff" font-size="18" font-weight="700">18250</text>
+    <text x="372" y="86" fill="#7fb8d8" font-size="10" letter-spacing="1" text-anchor="end">STAGE</text>
+    <text x="372" y="104" fill="#36e0ff" font-size="18" font-weight="700" text-anchor="end">1</text>
+    <text x="372" y="120" fill="#ff7b7b" font-size="13" text-anchor="end">♥♥♥♥</text>
+    <!-- combo -->
+    <text x="210" y="130" fill="#ffd166" font-size="20" font-weight="800" text-anchor="middle" font-family="Impact,'Arial Black',sans-serif">12 COMBO</text>
+    <text x="210" y="146" fill="#cfffe9" font-size="11" font-weight="700" text-anchor="middle">得分 x2.2</text>
+  </g>
+  <rect x="40" y="30" width="340" height="460" rx="14" fill="none" stroke="#1d3a52" stroke-width="2"/>
+
+  <!-- ===== Title / features ===== -->
+  <g transform="translate(440,0)">
+    <text x="30" y="120" fill="url(#title)" font-size="58" font-weight="800" letter-spacing="2" font-family="Impact,'Arial Black',sans-serif">STRIKER 1945</text>
+    <text x="34" y="150" fill="#8fd" font-size="15" letter-spacing="6" opacity="0.85">RETRO VERTICAL SHOOTER ・ 仿《1945》</text>
+
+    <g font-size="15" fill="#cfeefb">
+      <g transform="translate(34,200)">
+        <rect x="0" y="-20" width="200" height="30" rx="15" fill="#10243a" stroke="#2a567a"/>
+        <text x="16" y="0">🛩️ 6 關 × 6 母艦 BOSS</text>
+      </g>
+      <g transform="translate(252,200)">
+        <rect x="0" y="-20" width="180" height="30" rx="15" fill="#10243a" stroke="#2a567a"/>
+        <text x="16" y="0">🔫 3 種武器系統</text>
+      </g>
+      <g transform="translate(34,244)">
+        <rect x="0" y="-20" width="150" height="30" rx="15" fill="#10243a" stroke="#2a567a"/>
+        <text x="16" y="0">🛡️ 護罩 / 僚機</text>
+      </g>
+      <g transform="translate(200,244)">
+        <rect x="0" y="-20" width="150" height="30" rx="15" fill="#10243a" stroke="#2a567a"/>
+        <text x="16" y="0">🚀 巡弋飛彈</text>
+      </g>
+      <g transform="translate(366,244)">
+        <rect x="0" y="-20" width="170" height="30" rx="15" fill="#10243a" stroke="#2a567a"/>
+        <text x="16" y="0">🔥 Combo 連段</text>
+      </g>
+      <g transform="translate(34,288)">
+        <rect x="0" y="-20" width="200" height="30" rx="15" fill="#10243a" stroke="#2a567a"/>
+        <text x="16" y="0">🎚️ 難度 / 🎵 BGM</text>
+      </g>
+      <g transform="translate(252,288)">
+        <rect x="0" y="-20" width="180" height="30" rx="15" fill="#10243a" stroke="#2a567a"/>
+        <text x="16" y="0">🏆 分難度排行榜</text>
+      </g>
+    </g>
+
+    <g transform="translate(34,360)">
+      <rect x="0" y="-24" width="300" height="36" rx="8" fill="rgba(54,224,255,0.12)" stroke="#36e0ff"/>
+      <text x="20" y="0" fill="#36e0ff" font-size="16" font-weight="700">▶ 線上遊玩</text>
+      <text x="120" y="0" fill="#9fdcff" font-size="13">prayer168.github.io/1945_claude</text>
+    </g>
+    <text x="34" y="420" fill="#5a7a90" font-size="12">純 HTML5 Canvas + 原生 JavaScript ・ 零外部資源 ・ 單檔即玩</text>
+    <text x="34" y="470" fill="#3d5566" font-size="11">＊ 以遊戲實際美術（戰機 / 母艦剪影、HUD 配色）繪製的示意主圖</text>
+  </g>
+</svg>

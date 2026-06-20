@@ -1,5 +1,7 @@
 # STRIKER 1945 — 仿《1945》射擊遊戲
 
+![STRIKER 1945](docs/hero.svg)
+
 純 HTML + Canvas + 原生 JavaScript 打造的垂直捲軸射擊遊戲，**零外部資源、單一檔案**即可遊玩。電腦、平板、手機瀏覽器皆支援。
 
 ## 🎮 線上遊玩
