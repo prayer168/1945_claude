@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" font-family="'Segoe UI','Microsoft JhengHei',sans-serif">
+  <defs>
+    <linearGradient id="space" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1430"/><stop offset="1" stop-color="#02040a"/>
+    </linearGradient>
+    <radialGradient id="bgglow" cx="0.7" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#12345a" stop-opacity="0.5"/><stop offset="1" stop-color="#05080f" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="planet" cx="0.35" cy="0.35" r="0.75">
+      <stop offset="0" stop-color="#6fa0d8"/><stop offset="0.7" stop-color="#34548c"/><stop offset="1" stop-color="#0f1b3a"/>
+    </radialGradient>
+    <radialGradient id="neb" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#7a3cc0" stop-opacity="0.35"/><stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="pwing" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1b94b8"/><stop offset="0.5" stop-color="#7ff0ff"/><stop offset="1" stop-color="#1b94b8"/>
+    </linearGradient>
+    <linearGradient id="bhull" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#b23838"/><stop offset="0.5" stop-color="#ff7a7a"/><stop offset="1" stop-color="#b23838"/>
+    </linearGradient>
+    <linearGradient id="title" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9af6ff"/><stop offset="0.55" stop-color="#36e0ff"/><stop offset="1" stop-color="#1597c8"/>
+    </linearGradient>
+    <linearGradient id="fire" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd166"/><stop offset="1" stop-color="#ff5252"/>
+    </linearGradient>
+    <clipPath id="screen"><rect x="50" y="45" width="330" height="540" rx="16"/></clipPath>
+  </defs>
+
+  <rect width="1200" height="630" fill="#05080f"/>
+  <rect width="1200" height="630" fill="url(#bgglow)"/>
+
+  <!-- ===== Gameplay panel ===== -->
+  <g clip-path="url(#screen)">
+    <rect x="50" y="45" width="330" height="540" fill="url(#space)"/>
+    <circle cx="150" cy="300" r="170" fill="url(#neb)"/>
+    <g transform="translate(120,120)">
+      <ellipse cx="0" cy="0" rx="70" ry="22" fill="none" stroke="#86b4e6" stroke-opacity="0.45" stroke-width="7" transform="rotate(-18)"/>
+      <circle r="36" fill="url(#planet)"/>
+    </g>
+    <g fill="#bfe0ff">
+      <circle cx="80" cy="90" r="1.6"/><circle cx="300" cy="75" r="1.8"/><circle cx="350" cy="160" r="1.3"/>
+      <circle cx="210" cy="110" r="1.1"/><circle cx="330" cy="260" r="1.7"/><circle cx="70" cy="350" r="1.5"/>
+      <circle cx="120" cy="450" r="1.3"/><circle cx="340" cy="420" r="1.6"/><circle cx="250" cy="520" r="1.4"/>
+      <circle cx="95" cy="230" r="1.1"/><circle cx="360" cy="520" r="1.5"/><circle cx="180" cy="360" r="1.1"/>
+      <circle cx="300" cy="350" r="1.2"/><circle cx="150" cy="540" r="1.3"/>
+    </g>
+
+    <!-- BOSS -->
+    <g transform="translate(215,168) scale(1.08)">
+      <g fill="url(#fire)" opacity="0.9">
+        <path d="M-34,-30 L-30,-52 L-26,-30 Z"/><path d="M-16,-30 L-12,-54 L-8,-30 Z"/>
+        <path d="M8,-30 L12,-54 L16,-30 Z"/><path d="M26,-30 L30,-52 L34,-30 Z"/>
+      </g>
+      <path d="M-18,8 L-70,-18 L-66,-26 L-16,-10 L16,-10 L66,-26 L70,-18 L18,8 Z" fill="#8e2f2f"/>
+      <rect x="-48" y="-30" width="8" height="22" fill="#6e2020"/><rect x="-30" y="-30" width="8" height="22" fill="#6e2020"/>
+      <rect x="22" y="-30" width="8" height="22" fill="#6e2020"/><rect x="40" y="-30" width="8" height="22" fill="#6e2020"/>
+      <path d="M0,44 L26,28 L34,2 L26,-22 L12,-32 L0,-30 L-12,-32 L-26,-22 L-34,2 L-26,28 Z" fill="url(#bhull)"/>
+      <rect x="-22" y="-6" width="44" height="12" fill="#000" opacity="0.3"/>
+      <g fill="#7a2424"><circle cx="-22" cy="18" r="4.5"/><circle cx="22" cy="18" r="4.5"/><circle cx="-28" cy="2" r="4.5"/><circle cx="28" cy="2" r="4.5"/></g>
+      <circle cx="0" cy="2" r="9" fill="#0a1420"/><circle cx="0" cy="2" r="6.5" fill="#ffd166"/><circle cx="0" cy="2" r="2.6" fill="#fff"/>
+    </g>
+    <rect x="66" y="80" width="298" height="8" rx="3" fill="#000" opacity="0.5"/>
+    <rect x="66" y="80" width="186" height="8" rx="3" fill="#ff3b3b"/>
+    <text x="66" y="74" fill="#fff" font-size="10" font-weight="700">BOSS  STAGE 1</text>
+
+    <!-- enemy bullets -->
+    <g fill="#ff5252"><circle cx="190" cy="300" r="5"/><circle cx="235" cy="320" r="5"/><circle cx="170" cy="345" r="5"/><circle cx="255" cy="355" r="5"/><circle cx="210" cy="335" r="5"/></g>
+
+    <!-- enemies -->
+    <g transform="translate(150,340) scale(1.25)" fill="#ff8e8e">
+      <path d="M0,1 L-14,-6 L-13,-9 L0,-4 L13,-9 L14,-6 Z"/><path d="M0,12 L3,1 L3,-12 L0,-14 L-3,-12 L-3,1 Z"/>
+    </g>
+    <g transform="translate(275,372) scale(1.25)" fill="#ffb86b">
+      <path d="M0,2 L-17,-4 L-16,-8 L0,-3 L16,-8 L17,-4 Z"/><path d="M0,15 L4,3 L4,-7 L0,-10 L-4,-7 L-4,3 Z"/>
+    </g>
+
+    <!-- player bullets -->
+    <g fill="#aef6ff">
+      <rect x="207" y="395" width="3.4" height="12"/><rect x="221" y="395" width="3.4" height="12"/>
+      <rect x="207" y="420" width="3.4" height="12"/><rect x="221" y="420" width="3.4" height="12"/>
+      <rect x="207" y="445" width="3.4" height="12"/><rect x="221" y="445" width="3.4" height="12"/>
+    </g>
+
+    <!-- player + shield + wingmen -->
+    <circle cx="215" cy="485" r="36" fill="#5d8bff" opacity="0.12"/><circle cx="215" cy="485" r="36" fill="none" stroke="#7fb3ff" stroke-width="2.5" opacity="0.5"/>
+    <g transform="translate(168,498) scale(1.15)" fill="#7dffc2"><path d="M0,-11 L9,5 L3,4 L2,10 L-2,10 L-3,4 L-9,5 Z"/></g>
+    <g transform="translate(262,498) scale(1.15)" fill="#7dffc2"><path d="M0,-11 L9,5 L3,4 L2,10 L-2,10 L-3,4 L-9,5 Z"/></g>
+    <g transform="translate(215,485) scale(1.85)">
+      <path d="M-3,18 L0,34 L3,18 Z" fill="#ff9a3b"/>
+      <path d="M-12,12 L-3,7 L3,7 L12,12 L10,16 L-10,16 Z" fill="#1f9fc4"/>
+      <path d="M-4,-4 L-23,7 L-21,11 L-4,7 L4,7 L21,11 L23,7 L4,-4 Z" fill="url(#pwing)"/>
+      <path d="M0,-21 L4,-9 L4.5,13 L2.5,18.5 L-2.5,18.5 L-4.5,13 L-4,-9 Z" fill="#7ff0ff"/>
+      <ellipse cx="0" cy="-1" rx="2.7" ry="5.2" fill="#0a2230"/><ellipse cx="0" cy="-2" rx="1.6" ry="3.2" fill="#bdf2ff"/>
+      <circle cx="0" cy="-21" r="1.7" fill="#e6fbff"/>
+    </g>
+
+    <!-- HUD -->
+    <text x="62" y="112" fill="#7fb8d8" font-size="11" letter-spacing="1">SCORE</text>
+    <text x="62" y="132" fill="#36e0ff" font-size="20" font-weight="700">18250</text>
+    <text x="366" y="112" fill="#7fb8d8" font-size="11" letter-spacing="1" text-anchor="end">STAGE</text>
+    <text x="366" y="132" fill="#36e0ff" font-size="20" font-weight="700" text-anchor="end">1</text>
+    <text x="366" y="150" fill="#ff7b7b" font-size="14" text-anchor="end">♥♥♥♥</text>
+    <text x="215" y="160" fill="#ffd166" font-size="22" font-weight="800" text-anchor="middle" font-family="Impact,'Arial Black',sans-serif">12 COMBO</text>
+    <text x="215" y="177" fill="#cfffe9" font-size="12" font-weight="700" text-anchor="middle">得分 x2.2</text>
+  </g>
+  <rect x="50" y="45" width="330" height="540" rx="16" fill="none" stroke="#1d3a52" stroke-width="2"/>
+
+  <!-- ===== Title / copy ===== -->
+  <g transform="translate(430,0)">
+    <text x="20" y="150" font-size="34" font-weight="800" letter-spacing="2" fill="#ff5252" font-family="Impact,'Arial Black',sans-serif">🔥 點火・升空・開戰！</text>
+    <text x="18" y="248" font-size="86" font-weight="800" letter-spacing="2" fill="url(#title)" font-family="Impact,'Arial Black',sans-serif">STRIKER 1945</text>
+    <text x="22" y="288" font-size="22" letter-spacing="3" fill="#8fd">熱血復古空戰射擊 ・ RETRO SHOOT-'EM-UP</text>
+    <text x="22" y="324" font-size="20" fill="#cfeefb">瀏覽器免下載 ・ 手機・平板・電腦直接開打</text>
+
+    <g font-size="17" fill="#dff" font-weight="600">
+      <g transform="translate(20,372)"><rect x="0" y="-23" width="236" height="34" rx="17" fill="#10243a" stroke="#2a567a"/><text x="18" y="0">🛩️ 6 關 × 6 母艦 BOSS</text></g>
+      <g transform="translate(272,372)"><rect x="0" y="-23" width="200" height="34" rx="17" fill="#10243a" stroke="#2a567a"/><text x="18" y="0">🔫 3 種武器切換</text></g>
+      <g transform="translate(20,422)"><rect x="0" y="-23" width="210" height="34" rx="17" fill="#10243a" stroke="#2a567a"/><text x="18" y="0">🚀 飛彈 / 護罩 / 僚機</text></g>
+      <g transform="translate(252,422)"><rect x="0" y="-23" width="170" height="34" rx="17" fill="#10243a" stroke="#2a567a"/><text x="18" y="0">🔥 Combo 連段</text></g>
+      <g transform="translate(442,422)"><rect x="0" y="-23" width="170" height="34" rx="17" fill="#10243a" stroke="#2a567a"/><text x="18" y="0">🏆 難度排行榜</text></g>
+    </g>
+
+    <g transform="translate(20,500)">
+      <rect x="0" y="-30" width="500" height="50" rx="25" fill="rgba(54,224,255,0.14)" stroke="#36e0ff" stroke-width="2"/>
+      <text x="26" y="3" fill="#36e0ff" font-size="22" font-weight="800">▶ 馬上參戰</text>
+      <text x="150" y="3" fill="#bfeeff" font-size="19" font-weight="600">prayer168.github.io/1945_claude</text>
+    </g>
+    <text x="22" y="560" fill="#6a8aa0" font-size="14">純 HTML5 Canvas + 原生 JavaScript ・ 連音樂音效都即時合成 ・ 零外部資源</text>
+  </g>
+</svg>
