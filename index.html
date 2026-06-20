@@ -73,6 +73,12 @@
     background:rgba(8,20,34,.5); color:#cff; font-size:14px; line-height:1;
     width:30px; height:26px; border-radius:6px; }
   #muteBtn:active { background:rgba(54,224,255,.35); }
+  #pauseBtn { position:absolute; top:8px; left:calc(50% + 38px); transform:translateX(-50%);
+    pointer-events:auto; cursor:pointer; border:1px solid rgba(255,255,255,.3);
+    background:rgba(8,20,34,.5); color:#cff; font-size:13px; line-height:1;
+    width:30px; height:26px; border-radius:6px; }
+  #pauseBtn:active { background:rgba(54,224,255,.35); }
+  #pauseBtn.hidden { display:none; }
   #diffSel { display:flex; gap:8px; align-items:center; }
   .diffBtn { pointer-events:auto; cursor:pointer; border:1px solid #2a567a;
     background:rgba(10,20,34,.6); color:#9fc; padding:7px 16px; border-radius:6px;
@@ -124,6 +130,7 @@
       </div>
       <button id="muteBtn" title="音樂開關">🔊</button>
       <button id="fsBtn" title="全螢幕">⛶</button>
+      <button id="pauseBtn" class="hidden" title="暫停 (P)">⏸</button>
       <div id="touchHint">拖曳移動・自動射擊・右下按鈕：武器/飛彈/炸彈</div>
       <div id="btnBar" class="hidden">
         <div class="gbtn" id="gbWeapon">武器<small id="gbWeaponN">1</small></div>
@@ -174,6 +181,14 @@
       </div>
       <button class="btn" id="saveBtn">儲存並重新開始</button>
       <div id="overTable"></div>
+    </div>
+
+    <!-- PAUSE -->
+    <div class="screen hidden" id="pauseScreen">
+      <h2 style="letter-spacing:6px">⏸ 暫停</h2>
+      <button class="btn" id="resumeBtn">▶ 繼續遊戲</button>
+      <button class="btn" id="quitBtn" style="padding:8px 20px;font-size:13px">← 返回標題</button>
+      <p class="hint" style="font-size:12px">按 <kbd>P</kbd> 或 <kbd>Esc</kbd> 也可繼續</p>
     </div>
 
     <!-- LEVEL EDITOR -->
@@ -301,6 +316,8 @@ addEventListener('keydown',e=>{
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
   const k=e.key.toLowerCase();
   keys[k]=true;
+  if(k==='p'||k==='escape'){ togglePause(); return; }
+  if(game.paused) return;
   if(e.key===' '||k==='b') useBomb();
   if(k==='m') fireMissile();
   if((k==='1'||k==='2'||k==='3') && state===State.PLAY && game.player){
@@ -348,7 +365,7 @@ const game={
   spawnQueue:[], waveTimer:0, boss:null, bossPending:false,
   warnT:0, warnBeep:0,
   combo:0, comboTimer:0, comboPop:0, comboBest:0, comboWindow:2.6,
-  diffSpd:1, diffGap:1,
+  diffSpd:1, diffGap:1, paused:false,
   shake:0, slowmo:0, flash:0, toast:null,
 };
 
@@ -400,7 +417,7 @@ function nearestEnemy(x,y){
 function toast(txt){ game.toast={txt,life:1.2}; }
 
 function useBomb(){
-  if(state!==State.PLAY) return;
+  if(state!==State.PLAY || game.paused) return;
   if(game.bombs<=0) return;
   game.bombs--; updateHUD();
   game.shake=18; game.flash=12; SFX.bomb();
@@ -413,7 +430,7 @@ function useBomb(){
 
 // 巡弋飛彈：限量、自動追蹤、命中爆炸範圍傷害
 function fireMissile(){
-  if(state!==State.PLAY || game.missiles<=0) return;
+  if(state!==State.PLAY || game.paused || game.missiles<=0) return;
   game.missiles--; updateHUD(); SFX.shoot();
   const p=game.player;
   game.pmissiles.push({x:p.x-9,y:p.y-6,vx:-70,vy:-150,r:5,life:4.5,target:null});
@@ -583,7 +600,7 @@ function startGame(startStage){
   game.score=0; game.stage=startStage; game.lives=d.lives; game.bombs=3; game.missiles=3;
   game.bullets=[]; game.enemies=[]; game.ebullets=[]; game.items=[]; game.particles=[];
   game.pmissiles=[]; game.scenery=[]; game.scenT=0; game.toast=null;
-  game.combo=0; game.comboTimer=0; game.comboPop=0; game.comboBest=0;
+  game.combo=0; game.comboTimer=0; game.comboPop=0; game.comboBest=0; game.paused=false;
   game.player=makePlayer(); initStars();
   buildStage(startStage);
   hide('titleScreen'); hide('clearScreen'); hide('overScreen'); hide('editorScreen');
@@ -645,7 +662,8 @@ function updateHUD(){
   document.getElementById('missiles').textContent = '➤ x'+game.missiles;
   document.getElementById('gbMissileN').textContent = game.missiles;
   document.getElementById('gbBombN').textContent = game.bombs;
-  document.getElementById('btnBar').classList.toggle('hidden', state!==State.PLAY);
+  document.getElementById('btnBar').classList.toggle('hidden', state!==State.PLAY || game.paused);
+  document.getElementById('pauseBtn').classList.toggle('hidden', state!==State.PLAY);
 }
 
 // ====================== 排行榜 ======================
@@ -712,6 +730,21 @@ function toggleFullscreen(){
 document.getElementById('fsBtn').onclick=toggleFullscreen;
 document.getElementById('fsStartBtn').onclick=toggleFullscreen;
 document.getElementById('muteBtn').onclick=toggleMusic;
+// 暫停
+function togglePause(){
+  if(state!==State.PLAY) return;
+  game.paused=!game.paused;
+  if(game.paused){ Music.stop(); show('pauseScreen'); }
+  else { hide('pauseScreen'); if(Music.on) Music.start(); }
+  updateHUD();
+}
+function quitToTitle(){
+  game.paused=false; hide('pauseScreen'); Music.stop();
+  state=State.TITLE; show('titleScreen'); renderTable('hiTable', selDiff); updateHUD();
+}
+document.getElementById('pauseBtn').onclick=togglePause;
+document.getElementById('resumeBtn').onclick=()=>{ if(game.paused) togglePause(); };
+document.getElementById('quitBtn').onclick=quitToTitle;
 // 難度選擇
 document.querySelectorAll('.diffBtn').forEach(btn=>{
   btn.addEventListener('click',()=>{ selDiff=+btn.dataset.d;
@@ -771,6 +804,7 @@ document.getElementById('saveBtn').onclick=()=>{
 
 // ====================== 更新邏輯 ======================
 function update(dt){
+  if(state===State.PLAY && game.paused) return;   // 暫停：凍結一切
   // 星空
   game.stars.forEach(s=>{ s.y+=s.v*dt; if(s.y>BASE_H){ s.y=0; s.x=rand(0,BASE_W);} });
   // 太空背景物件
