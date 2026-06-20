@@ -513,7 +513,7 @@ function playerShoot(){
   if(p.wings>=1) game.bullets.push(wShot(p.x-WING_OFF, p.y+WING_DY-10));
   if(p.wings>=2) game.bullets.push(wShot(p.x+WING_OFF, p.y+WING_DY-10));
 }
-function bShot(x,y,vx,vy){ return {x,y,vx,vy,r:4,dmg:1}; }
+function bShot(x,y,vx,vy){ return {x,y,vx,vy,r:4,dmg:1,hitCd:0}; }
 function wShot(x,y){ const b=bShot(x,y,0,-620); b.wing=true; return b; }
 function eShot(x,y,vx,vy,r=5){ const s=game.diffSpd; return {x,y,vx:vx*s,vy:vy*s,r}; }
 
@@ -831,12 +831,12 @@ function update(dt){
     let hit=false, dealt=false;
     for(const e of game.enemies){
       if(dist2(b.x,b.y,e.x,e.y)<(e.r+b.r)*(e.r+b.r)){ hit=true;
-        if(!b.pierce || b.hitCd<=0){ damageEnemy(e,b.dmg); dealt=true; } break; }
+        if(!b.pierce || !(b.hitCd>0)){ damageEnemy(e,b.dmg); dealt=true; } break; }
     }
     if(!hit && game.boss){
       const e=game.boss;
       if(!e.entering && dist2(b.x,b.y,e.x,e.y)<(e.r+b.r)*(e.r+b.r)){ hit=true;
-        if(!b.pierce || b.hitCd<=0){ damageEnemy(e,b.dmg); dealt=true; } }
+        if(!b.pierce || !(b.hitCd>0)){ damageEnemy(e,b.dmg); dealt=true; } }
     }
     if(b.pierce){ if(dealt) b.hitCd=0.07; }   // 貫穿彈：同目標命中冷卻
     else if(hit) game.bullets.splice(i,1);
